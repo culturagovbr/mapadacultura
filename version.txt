@@ -1,1 +1,1 @@
-develop-minc
+v7.4.12-minc2
