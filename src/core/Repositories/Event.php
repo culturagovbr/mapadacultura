@@ -341,9 +341,9 @@ class Event extends \MapasCulturais\Repository{
         $conn = $this->_em->getConnection();
 
         if($params){
-            $rs = $conn->fetchAssociative($sql, $params);
+            $rs = $conn->fetchAllAssociative($sql, $params);
         } else {
-            $rs = $conn->fetchAssociative($sql);
+            $rs = $conn->fetchAllAssociative($sql);
         }
 
         $rs = $rs ?: [];
