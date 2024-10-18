@@ -185,6 +185,13 @@ app.component('create-occurrence', {
             this.price = this.moneyMask(floatNum);
         },
 
+        // Salva modificações no evento e cria a ocorrência
+        saveDataState(modal){
+            this.entity.save();
+
+            this.create(modal);
+        },
+
         // Criação da ocorrência
         create(modal) {
             this.newOccurrence.eventId = this.entity.id;
