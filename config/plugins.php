@@ -2,6 +2,7 @@
 
 return [
     'plugins' => [
+         'WorkplanSyncTransfereGov',
          'MultipleLocalAuth',
          'AdminLoginAsUser',
          'RecreatePCacheOnLogin',
