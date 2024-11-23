@@ -66,7 +66,7 @@ function print_table($rs){
 
 function login($user_id){
     $app = MapasCulturais\App::i();
-    $app->auth->login($user_id);
+    $app->auth->authenticateUser(\MapasCulturais\App::i()->repo('User')->find($user_id));
 }
 
 function api($entity, $_params, $print=true){
@@ -135,6 +135,7 @@ class role{
         print_table($rs);
     }
 }
+
 
 echo "
 ================================

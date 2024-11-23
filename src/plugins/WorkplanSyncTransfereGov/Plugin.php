@@ -19,7 +19,20 @@ class Plugin extends \MapasCulturais\Plugin {
         /* }); */
     }
 
-    function register() {}
+    function register() {
+        $this->registerRegistrationMetadata('transferegov_plano_acao_id', [
+            'label' => i::__('ID do plano de ação no TransfereGov'),
+            'type' => 'integer',
+            'private' => false,
+            'default' => null
+        ]);
+        $this->registerRegistrationMetadata('transferegov_plano_acao_meta_id', [
+            'label' => i::__('ID da meta do plano de ação no TransfereGov'),
+            'type' => 'integer',
+            'private' => false,
+            'default' => null
+        ]);
+    }
 
     function get_http_response_content_json($url) {
         $ch = curl_init();
@@ -44,7 +57,7 @@ class Plugin extends \MapasCulturais\Plugin {
 
     function get_transfreregov_plano_de_acao() {
         $url = 'https://api.transferegov.gestao.gov.br/fundoafundo/plano_acao?id_programa=eq.60&select=*%2Cplano_acao_analise(*%2Cplano_acao_analise_responsavel(*))&limit=100';
-        return get_http_response_content_json($url);
+        return $this->get_http_response_content_json($url);
     }
 
     function get_transfreregov_meta($plano_acao_id) {
@@ -52,11 +65,11 @@ class Plugin extends \MapasCulturais\Plugin {
             throw new \Exception("Invalid plano_acao_id");
         }
         $url = 'https://api.transferegov.gestao.gov.br/fundoafundo/plano_acao_meta?id_plano_acao=eq.'.$plano_acao_id.'&limit=100';
-        return get_http_response_content_json($url);
+        return $this->get_http_response_content_json($url);
     }
 
     function get_or_create_registration($opportunity, $plano_acao) {
-        $app = MapasCulturais\App::i();
+        $app = App::i();
 
         // Try to find existing registration by opportunity and plano_acao_id
         $registrations = $app->repo('Registration')->findBy(['opportunity' => $opportunity]);
@@ -72,12 +85,12 @@ class Plugin extends \MapasCulturais\Plugin {
         if (!$registration) {
             $registration = new \MapasCulturais\Entities\Registration;
             $registration->opportunity = $opportunity;
-            $registration->owner = $app->user;
+            $registration->owner = \MapasCulturais\App::i()->repo('Agent')->find($app->user->profile_id);
 
-            // Save TransfereGov metadata using setMetadata
+            // Save TransfereGov metadata using setMetadata 
             $registration->setMetadata('transferegov_plano_acao_id', $plano_acao['id_plano_acao']);
-            $registration->setMetadata('transferegov_numero_plano_acao', $plano_acao['numero_plano_acao']);
-            $registration->setMetadata('transferegov_ano_plano_acao', $plano_acao['ano_plano_acao']);
+            // $registration->setMetadata('transferegov_numero_plano_acao', $plano_acao['numero_plano_acao']);
+            // $registration->setMetadata('transferegov_ano_plano_acao', $plano_acao['ano_plano_acao']);
 
             $registration->save(true);
         }
@@ -102,7 +115,7 @@ class Plugin extends \MapasCulturais\Plugin {
 
         // Save TransfereGov metadata using setMetadata
         $goal->setMetadata('transferegov_meta_id', $meta['id_meta_plano_acao']);
-        $goal->setMetadata('transferegov_numero_meta', $meta['numero_meta_plano_acao']);
+        // $goal->setMetadata('transferegov_numero_meta', $meta['numero_meta_plano_acao']);
 
         $goal->save(true);
 
@@ -137,7 +150,7 @@ class Plugin extends \MapasCulturais\Plugin {
     }
 
     function generate_workplan($opportunity_id) {
-        $app = MapasCulturais\App::i();
+        $app = App::i();
         $app->disableAccessControl();
 
         try {
@@ -148,17 +161,23 @@ class Plugin extends \MapasCulturais\Plugin {
             }
 
             // Fetch data from TransfereGov first
-            $plano_acao_data = get_transfreregov_plano_de_acao();
+            $plano_acao_data = $this->get_transfreregov_plano_de_acao();
             if (empty($plano_acao_data)) {
                 throw new \Exception("No plano de ação found in TransfereGov");
             }
-            $plano_acao = $plano_acao_data[0];
 
-            // Get or create registration with TransfereGov data
-            $registration = get_or_create_registration($opportunity, $plano_acao);
+            $workplans = [];
+            // Iterate over all plano_acao entries
+            foreach ($plano_acao_data as $plano_acao) {
+                // Get or create registration with TransfereGov data
+                $registration = $this->get_or_create_registration($opportunity, $plano_acao);
 
-            // Generate workplan using the registration
-            return generate_workplan_from_transferegov($registration->id);
+                // Generate workplan using the registration
+                $workplan = $this->generate_workplan_from_transferegov($registration->id);
+                $workplans[] = $workplan;
+            }
+
+            return $workplans;
 
         } catch (\Exception $e) {
             $app->enableAccessControl();
@@ -167,7 +186,7 @@ class Plugin extends \MapasCulturais\Plugin {
     }
 
     function generate_workplan_from_transferegov($registration_id) {
-        $app = MapasCulturais\App::i();
+        $app = App::i();
         $app->disableAccessControl();
 
         try {
@@ -192,7 +211,7 @@ class Plugin extends \MapasCulturais\Plugin {
             }
 
             // Fetch metas from TransfereGov
-            $plano_acao_meta = get_transfreregov_meta($plano_acao_id);
+            $plano_acao_meta = $this->get_transfreregov_meta($plano_acao_id);
             if (empty($plano_acao_meta)) {
                 throw new \Exception("No metas found for plano de ação ID: $plano_acao_id");
             }
@@ -215,8 +234,8 @@ class Plugin extends \MapasCulturais\Plugin {
 
             // Create Goals and Deliveries
             foreach($plano_acao_meta as $meta) {
-                $goal = create_workplan_goal($workplan, $meta, $registration);
-                create_workplan_delivery($goal, $meta, $registration);
+                $goal = $this->create_workplan_goal($workplan, $meta, $registration);
+                $this->create_workplan_delivery($goal, $meta, $registration);
             }
 
             $app->enableAccessControl();
