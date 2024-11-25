@@ -9,6 +9,24 @@ class Plugin extends \MapasCulturais\Plugin {
     function _init() {
         $app = App::i();
 
+        $app->hook('app.init:after', function () use($app) {
+
+            $app->hook("template(opportunity-data-collection-config):end", function(){
+                $this->part('opportunity-workplan-config');
+            });
+        });
+
+        $app->hook('panel.nav', function (&$group) use ($app) {
+            $group['admin']['items'][] = [
+                'route' => 'config/transferegov',
+                'icon' => 'integration',
+                'label' => i::__('Integração TransfereGov'),
+                'condition' => function () use ($app) {
+                    return $app->user->is('saasAdmin');
+                }
+            ];
+        });
+
         /* $app->hook('auth.login', function($user) use($app){ */
         /*    /** @var User $user */
         /*    // $agents = $app->repo('Agent')->findBy(['user' => $user, '_type' => 1]); */
@@ -85,8 +103,29 @@ class Plugin extends \MapasCulturais\Plugin {
         if (!$registration) {
             $registration = new \MapasCulturais\Entities\Registration;
             $registration->opportunity = $opportunity;
-            $registration->owner = \MapasCulturais\App::i()->repo('Agent')->find($app->user->profile_id);
-
+            
+            // Find an admin user by checking all users
+            $users = $app->repo('User')->findAll();
+            $admin = null;
+            foreach ($users as $user) {
+                if ($user->is('admin')) {
+                    $admin = $user;
+                    break;
+                }
+            }
+            
+            if (!$admin) {
+                throw new \Exception("No admin user found in the system");
+            }
+            
+            // Get the user's profile agent
+            $agent = $admin->profile;
+            if (!$agent) {
+                throw new \Exception("No profile agent found for admin user");
+            }
+            
+            $registration->owner = $agent;
+            
             // Save TransfereGov metadata using setMetadata 
             $registration->setMetadata('transferegov_plano_acao_id', $plano_acao['id_plano_acao']);
             // $registration->setMetadata('transferegov_numero_plano_acao', $plano_acao['numero_plano_acao']);
@@ -96,6 +135,37 @@ class Plugin extends \MapasCulturais\Plugin {
         }
 
         return $registration;
+    }
+
+    function login($user_id){
+        $app = App::i();
+        $app->auth->authenticateUser($app->repo('User')->find($user_id));
+    }
+
+    function ensure_admin_login() {
+        $app = App::i();
+        
+        // If no user is logged in or current user is not admin
+        if (!$app->user || !$app->user->is('admin')) {
+            // Find an admin user by checking all users
+            $users = $app->repo('User')->findAll();
+            $admin = null;
+            foreach ($users as $user) {
+                if ($user->is('admin')) {
+                    $admin = $user;
+                    break;
+                }
+            }
+            
+            if (!$admin) {
+                throw new \Exception("No admin user found in the system");
+            }
+            
+            // Login as admin
+            $this->login($admin->id);
+        }
+        
+        return $app->user;
     }
 
     function create_workplan_goal($workplan, $meta, $registration) {
@@ -154,6 +224,9 @@ class Plugin extends \MapasCulturais\Plugin {
         $app->disableAccessControl();
 
         try {
+            // Ensure we have an admin user logged in
+            $this->ensure_admin_login();
+            
             // Get opportunity
             $opportunity = $app->repo('Opportunity')->find($opportunity_id);
             if (!$opportunity) {
@@ -190,6 +263,9 @@ class Plugin extends \MapasCulturais\Plugin {
         $app->disableAccessControl();
 
         try {
+            // Ensure we have an admin user logged in
+            $this->ensure_admin_login();
+            
             // Get registration
             $registration = $app->repo('Registration')->find($registration_id);
             if (!$registration) {
