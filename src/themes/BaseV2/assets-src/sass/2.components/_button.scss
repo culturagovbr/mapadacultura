@@ -347,4 +347,23 @@
             color: var(--mc-warning-500);
         }
     }
+    @media (max-width: 900px){
+        &--filter--bottom{
+            top: -35px;
+            position: relative;
+            .button--primary.button--large{
+                position: relative;
+                top: 30px;
+            }
+        }
+    }
+    @media (min-width: 901px){
+        &--filter--bottom{
+            top: 0px;
+            position: relative;
+            .button--primary.button--large{
+                display: none;
+            }
+        }
+    }
 }

@@ -25,9 +25,10 @@ $this->import('
             </button>
         </div>
         <div :class="['search-filter__filter', {'show': showMenu}]">
-            <div class="content">
-                <a href="#main-app" class="search-filter__filter--close button button--icon" @click="toggleFilter()"><?= i::_e('Fechar') ?> <mc-icon name="close"></mc-icon></a>
-                <slot><?= i::__('Filtrar'); ?></slot>
+            <div class="content button--filter--bottom">
+            <slot><?= i::__('Filtrar'); ?></slot>
+            <a href="#main-app" class="button--primary button--large button--icon button button--icon" @click="toggleFilter()"><?= i::_e('Aplicar Filtros') ?></a>
+                
             </div>
         </div>
     </div>
