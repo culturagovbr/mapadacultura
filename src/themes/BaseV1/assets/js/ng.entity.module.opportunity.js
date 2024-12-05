@@ -679,6 +679,10 @@ module.controller('RegistrationConfigurationsController', ['$scope', '$rootScope
                     MapasCulturais.Messages.success(labels['attachmentCreated']);
                 }
             });
+            
+            $scope.data.newFileConfiguration.conditional = false;
+            $scope.data.newFileConfiguration.conditionalField = "";
+            $scope.data.newFileConfiguration.conditionalValue = "";
         };
 
         $scope.removeFileConfiguration = function (id, $index) {
@@ -1614,19 +1618,36 @@ module.controller('RegistrationFieldsController', ['$scope', '$rootScope', '$int
     $scope.sendFile = function(attrs){
         $('.carregando-arquivo').show();
         $('.submit-attach-opportunity').hide();
-
+    
         var $form = $('#' + attrs.id + ' form');
+        var fieldName = $form[0][0].name;
+
+        $form.ajaxSubmit({
+            success: function(response) {
+                if (response[fieldName]) {      
+                    MapasCulturais.Messages.success(labels['changesSaved']);
+                    MapasCulturais.AjaxUploader.resetProgressBar($form);
+                    if(fieldName){
+                        $scope.removeFieldErrors(fieldName);
+                    }
+                } else {
+                    MapasCulturais.Messages.error(labels['fileTooBig']);
+                    MapasCulturais.AjaxUploader.resetProgressBar($form);
+                    $('.carregando-arquivo').hide();
+                    $('.submit-attach-opportunity').show();
+                }
+            },
+            error: function(xhr, status, error) {
+                let response = xhr.responseJSON;
+                MapasCulturais.Messages.error(response.data);
+                MapasCulturais.AjaxUploader.resetProgressBar($form);
+               
+                $('.carregando-arquivo').hide();
+                $('.submit-attach-opportunity').show();
+            }
+        });
+
         $form.submit();
-        if(!$form.data('onSuccess')){
-            $form.data('onSuccess', true);
-            $form.on('ajaxForm.success', function(){
-                MapasCulturais.Messages.success(labels['changesSaved']);
-                var fieldName = $form.parents('.attachment-list-item').data('fieldName');
-                if(fieldName){
-                    $scope.removeFieldErrors(fieldName);
-                } 
-            });
-        }
     };
 
     $scope.openFileEditBox = function(id, index, event){
@@ -1814,6 +1835,22 @@ module.controller('RegistrationFieldsController', ['$scope', '$rootScope', '$int
             return '<a href="mailto:' + value + '"  target="_blank" rel="noopener noreferrer">' + value + '</a>';
         } else if (value instanceof Array) {
             return value.join(', ');
+        } else if (field.fieldType === 'bankFields') {
+            const configAccounTypes = MapasCulturais.entity.registrationFieldTypes;
+            let accountType = 'Inválido';
+            let bankType = 'Inválido';
+ 
+            // Obtendo o Tipo de Conta
+            if (configAccounTypes['account_types'][value['account_type']]) {
+                accountType = configAccounTypes['account_types'][value['account_type']];
+            }
+
+            // Obtendo o Banco
+            if (configAccounTypes['bank_types'][value['number']]) {
+                bankType = configAccounTypes['bank_types'][value['number']];
+            }
+
+            return `Tipo: ${accountType} | Banco: ${bankType} | Agência: ${value['branch']}-${value['dv_branch']} | Conta: ${value['account_number']}-${value['dv_account_number']}`;
         } else {
             return value;
         }
