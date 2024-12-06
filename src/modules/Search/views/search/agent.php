@@ -18,7 +18,7 @@ $this->import('
 
 $this->breadcrumb = [
     ['label' => i::__('Inicio'), 'url' => $app->createUrl('site', 'index')],
-    ['label' => i::__('Agentes'), 'url' => $app->createUrl('agents')],
+    ['label' => i::__('Agentes'), 'url' => $app->createUrl('agentes')],
 ]; 
 ?>
 <search page-title="<?php i::esc_attr_e('Agentes') ?>" entity-type="agent" :initial-pseudo-query="{'term:area':[]}">
@@ -37,6 +37,7 @@ $this->breadcrumb = [
                     <?= i::_e('Visualizar como:') ?>
                 </label>
             </template>
+            <?php $this->applyTemplateHook('search-tabs', 'before'); ?>
             <mc-tab icon="list" label="<?php i::esc_attr_e('Lista') ?>" slug="list">
                 <div class="search__tabs--list">
                     <search-list :pseudo-query="pseudoQuery" type="agent" select="name,type,shortDescription,files.avatar,seals,endereco,terms" >
@@ -55,6 +56,7 @@ $this->breadcrumb = [
                     </search-map>
                 </div>
             </mc-tab>
+            <?php $this->applyTemplateHook('search-tabs', 'after'); ?>
         </mc-tabs>
     </template>
 </search>
