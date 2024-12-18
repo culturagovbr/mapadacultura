@@ -2,6 +2,7 @@
 
 namespace MapasCulturais;
 
+use Apps\Entities\UserApp;
 use Doctrine\ORM\Query;
 use Exception;
 use MapasCulturais\Entities\Agent;
@@ -14,6 +15,7 @@ use MapasCulturais\Types\GeoPoint;
 
 class ApiQuery {
     use Traits\MagicGetter,
+        Traits\MagicSetter,
         Traits\MagicCallers;
     
     /**
@@ -867,7 +869,13 @@ class ApiQuery {
         }
 
         if ($order) {
-            $dql .= "\n\nORDER BY {$order}";
+            if($this->entityClassName === UserApp::class) {
+                $dql .= "\n\nORDER BY {$order}";
+            } else {
+                $dql .= "\n\nORDER BY {$order}, e.id ASC";
+            }
+        } else {
+            $dql .= "\n\nORDER BY e.id ASC";
         }
 
         return $dql;
@@ -885,7 +893,7 @@ class ApiQuery {
         return $dql;
     }
 
-    public function getSubDQL($prop = null) {
+    public function getSubDQL($prop = null, $cast = null) {
         if(is_null($prop)) {
             $prop = $this->pk;
         }
@@ -898,9 +906,23 @@ class ApiQuery {
         if(isset($this->entityRelations[$prop])){
             $identity = "IDENTITY({$alias}.{$prop})";
         } else {
-            $identity = "{$alias}.{$prop}";
+            if($cast){
+                switch(strtolower($cast)) {
+                    case 'string':
+                        $cast = 'VARCHAR';
+                        break;
+                    case 'int':
+                        $cast = 'INTEGER';
+                        break;
+                    case 'bool':
+                        $cast = 'BOOLEAN';
+                        break;
+                }
+                $identity = "CAST({$alias}.{$prop} AS {$cast})";
+            } else {
+                $identity = "{$alias}.{$prop}";
+            }
         }
-        
         $dql = " SELECT $identity FROM {$this->entityClassName} {$alias} {$joins} ";
         if ($where) {
             $dql .= " WHERE {$where} ";
@@ -1018,17 +1040,23 @@ class ApiQuery {
         if(!$this->_subsiteId){
             if($subsite = $app->getCurrentSubsite()){
                 $subsite_query = $subsite->getApiQueryFilter($this->entityClassName);
+
+                $app->applyHookBoundTo($this, "{$this->hookPrefix}.subsiteFilters", [&$subsite_query]);
+
                 if($subsite_query){
                     $filters[] = ['subquery' => $subsite_query, 'subquery_property' => $this->pk, 'property' => $this->pk];
                 }
             }
         }
         
+        $app->applyHookBoundTo($this, "{$this->hookPrefix}.subqueryFilters", [&$filters]);
+
         return $filters;
     }
 
     protected function generateWhere() {
-        
+        $app = App::i();
+
         $where = $this->where;
         $where_dqls = implode(" $this->_op \n\t", $this->_whereDqls);
         
@@ -1056,11 +1084,14 @@ class ApiQuery {
         $filters = $this->getSubqueryFilters();
         
         foreach($filters as $filter){
+            /** @var ApiQuery */
             $subquery = $filter['subquery'];
             $subquery_property = $filter['subquery_property'];
             $property = $filter['property'];
             
-            $sub_dql = $subquery->getSubDQL($subquery_property);
+            $property_type = $this->entityClassMetadata->fieldMappings[$property]['type'] ?? false;
+
+            $sub_dql = $subquery->getSubDQL($subquery_property, $property_type);
             
             $where .= " AND e.{$property} IN ({$sub_dql})";
         }
@@ -1077,6 +1108,8 @@ class ApiQuery {
                 $where = "$where OR e.userId = {$userID}"; //Adiciona todos os agentes pertecentes ao usuário a resposta.
             }
         }
+
+        $app->applyHookBoundTo($this, "{$this->hookPrefix}.where", [&$where]);
 
         return $where;
     }
@@ -1097,14 +1130,18 @@ class ApiQuery {
             $joins .= " JOIN e.__sealRelations {$sl} WITH {$sl}.seal IN ($slv)";
         }
 
+        $app->applyHookBoundTo($this, "{$this->hookPrefix}.joins", [&$joins]);
+
         return $joins;
     }
     
     protected $_removeFromResult = [];
 
     protected function generateSelect() {
+        $app = App::i();
+
         $select = $this->select;
-        $class = $this->entityClassName;
+
         if(!in_array($this->pk, $this->_selectingProperties)){
             $this->_selectingProperties = array_merge([$this->pk], $this->_selectingProperties);
         }
@@ -1160,6 +1197,9 @@ class ApiQuery {
         foreach($this->orderCasts as $order_cast) {
             $select .= ", $order_cast";
         }
+
+        $app->applyHookBoundTo($this, "{$this->hookPrefix}.select", [&$select]);
+
         return $select;
     }
 
@@ -1367,9 +1407,8 @@ class ApiQuery {
             $entity_id = $entity[$this->pk];
             
             if (isset($metadata[$entity_id])) {
-                if (isset($permissions[$entity_id])) {
-                    $can_view = $permissions[$entity_id];
-                }
+                
+                $can_view = $permissions[$entity_id] ?? false;
                 
                 $meta = $metadata[$entity_id];
                 foreach($meta as $k => $v){
@@ -3027,7 +3066,11 @@ class ApiQuery {
             } elseif (strtolower($key) == '@select') {
                 $this->_parseSelect($value);
             } elseif (strtolower($key) == '@order') {
-                $this->_order = $value;
+                if(in_array('createTimestamp', $this->entityProperties)) {
+                    $this->_order = $value . ',createTimestamp ASC';
+                } else {
+                    $this->_order = $value . ',id ASC';
+                }
             } elseif (strtolower($key) == '@offset') {
                 $this->_offset = $value;
             } elseif (strtolower($key) == '@page') {

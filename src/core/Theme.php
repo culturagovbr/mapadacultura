@@ -6,6 +6,7 @@ use MapasCulturais\App;
 use MapasCulturais\Entities\Agent;
 use MapasCulturais\Entities\EvaluationMethodConfiguration;
 use MapasCulturais\Entities\Opportunity;
+use MapasCulturais\Entities\Registration;
 
 /**
  * This is the default MapasCulturais View class. It extends the \Slim\View class adding a layout layer and the option to render the template partially.
@@ -119,11 +120,12 @@ abstract class Theme {
             'timezone' => date_default_timezone_get(),
             'currency' => $app->config['app.currency']
         ];
-        $this->jsObject['routes'] = $app->config['routes'];
+
         
         $app->hook('app.init:after', function(){
             $this->view->jsObject['userId'] = $this->user->is('guest') ? null : $this->user->id;
             $this->view->jsObject['user'] = $this->user;
+            $this->view->jsObject['routes'] = $this->config['routes'];
         });
 
         $app->hook('app.register', function() use($app){
@@ -314,7 +316,7 @@ abstract class Theme {
             ];
 
         // VIEWS
-        }elseif(preg_match("#views/([^/]*?)\.php$#", $caller_filename, $matches)) {
+        }elseif(preg_match("#views/{$controller_id}/([^/]*?)\.php$#", $caller_filename, $matches)) {
             $match = $matches[1];
             $keys = [
                 "text:{$controller_id}.{$action}.view({$match}).{$name}",
@@ -422,6 +424,8 @@ abstract class Theme {
      */
     public function fullRender($__template, $data = null){
         $app = App::i();
+
+        $app->applyHookBoundTo($this, 'view.render(' . $__template . ').params', [&$data, &$__template]);
 
         $__template_filename = strtolower(substr($__template, -4)) === '.php' ? $__template : $__template . '.php';
         $render_data = [];
@@ -916,6 +920,9 @@ abstract class Theme {
                 if($opportunity->parent){
                     $e['opportunity']->parent = $opportunity->parent->simplify('id,name,type,files,terms,seals');
                 }
+                if ($opportunity->registrationSteps) {
+                    $e['opportunity']->registrationSteps = $opportunity->registrationSteps->toArray();
+                }
             }
             
 
@@ -988,6 +995,16 @@ abstract class Theme {
                 }
 
                 $e['profile']['currentUserPermissions'] = $permissions;
+            }
+
+            if($entity_class_name == Registration::class) {
+                $en = $this->controller->requestedEntity;
+                $meta = $en->jsonSerialize();
+                foreach($meta as $field => $value) {
+                    if (str_starts_with($field, "field_")) {
+                        $e[$field] = $value;
+                    }
+                }
             }
 
             $app->applyHookBoundTo($this, "view.requestedEntity($_entity).result", [&$e, $entity_class_name, $entity_id]);

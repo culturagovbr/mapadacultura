@@ -54,6 +54,10 @@ app.component('entity-field', {
             fieldType = 'textarea';
         }
 
+        if (!description.min) {
+            description.min = 0;
+        }
+
         /**
          * Aqui podemos passar alguns itens que eventualmente não queremos que sejam listados em alguma tela
          */
@@ -81,6 +85,8 @@ app.component('entity-field', {
             propId: `${this.entity.__objectId}--${this.prop}--${uid}`,
             fieldType,
             currencyValue: this.entity[this.prop],
+            readonly: false,
+            selectedOptions: [],
         }
     },
 
@@ -132,6 +138,12 @@ app.component('entity-field', {
             type: [ Number, String, Date ],
             default: 0 || null
         },
+
+        maxLength: {
+            type: Number,
+            default: null
+        },
+
         fieldDescription: {
             type: String,
             default: null
@@ -147,13 +159,50 @@ app.component('entity-field', {
             type: String,
             default: null,
         },
+
+        maxOptions: {
+            type: Number,
+            default: 0
+        },
+
+        descriptionFirst: {
+            type: Boolean,
+            default: false
+        },
+
+        preserveOrder: {
+            type: Boolean,
+            default: false
+        }
+    },
+
+    created() {
+        this.isReadonly();
+
+        window.addEventListener(
+            "entitySave",
+            this.isReadonly
+        );
+
+        if (this.isMultiSelect()) {
+            if (!this.entity[this.prop]) {
+                this.entity[this.prop] = [];
+            } else if (typeof this.entity[this.prop] !== 'object') {
+                this.entity[this.prop] = this.entity[this.prop].split(';');
+            }
+            
+            this.selectedOptions[this.prop] = [...this.entity[this.prop]];
+        }
+    },
+
+    mounted() {
+        if(this.is('textarea')) {
+            this.$refs.textarea.style.height = "auto";
+            this.$refs.textarea.style.height = (this.$refs.textarea.scrollHeight +10) + "px";
+        }
     },
 
     computed: {
-      
-        charRemaining() {
-            return 400 - this.value.length;
-        },
         hasErrors() {
             let errors = this.entity.__validationErrors[this.prop] || [];
             if(errors.length > 0){
@@ -167,10 +216,24 @@ app.component('entity-field', {
         },
         value() {
             return this.entity[this.prop]?.id ?? this.entity[this.prop];
-        }
+        },
+        entitiesFildTypes() {
+            return ['agent-owner-field', 'agent-collective-field']
+        },
     },
     
     methods: {
+        isRadioChecked(value, optionValue) {
+            if(value == optionValue) {
+                return true;
+            }
+
+            if(value == null && this.description?.default) {
+                return optionValue == this.description?.default;
+            }
+            
+            return false;            
+        },
         propExists(){
             return !! this.entity.$PROPERTIES[this.prop];
         },
@@ -194,37 +257,124 @@ app.component('entity-field', {
                 } else if(this.is('checkbox')) {
                     this.entity[this.prop] = event.target.checked;
                     this.$emit('change', {entity: this.entity, prop: this.prop, oldValue: oldValue, newValue: event.target.checked});
-                } else if (this.is('multiselect')) {
+                } else if (this.is("bankFields")) {
+                    let fieldEmpty = false;
+
+                    if(this.description.required){
+                        Object.keys(event).forEach(field => {
+                            if(!event[field]){
+                                fieldEmpty = true;
+                            }
+                        });
+                    }
+
+                    if(!fieldEmpty){
+                        this.entity.__validationErrors = {};
+                        this.entity[this.prop] = event;
+
+                        this.$emit('change', {entity: this.entity, prop: this.prop, oldValue: oldValue, newValue: event});
+                    }else {
+                        this.entity.__validationErrors = {
+                            ...this.entity.__validationErrors,
+                            [this.prop]:  ['Os dados bancarios são obrigatorios'],
+                        }
+                    }
+                    
+                } else if (this.is('multiselect') || this.is('checklist')) {
                     if (this.entity[this.prop] === '' || !this.entity[this.prop]) {
                         this.entity[this.prop] = []
                     } else if (typeof this.entity[this.prop] !== 'object') {
                         this.entity[this.prop] = this.entity[this.prop].split(";");
                     }
 
-                    let index = this.entity[this.prop].indexOf(event.target.value);
-                    if (index >= 0) {
-                        this.entity[this.prop].splice(index, 1);
+                    let value = event.target ? event.target.value : event; 
+                    let index = this.entity[this.prop].indexOf(value);
+
+                    if(value == "@NA") {
+                        if (index < 0) {
+                            this.entity[this.prop] = ["@NA"];
+                        } else {
+                            this.entity[this.prop].splice(index, 1);
+                        }
                     } else {
-                        this.entity[this.prop].push(event.target.value)
+                        const ndIndex = this.entity[this.prop].indexOf("@NA");
+
+                        if (ndIndex >= 0) {
+                            this.entity[this.prop].splice(ndIndex, 1);
+                        }
+
+                        if (index >= 0) {
+                            this.entity[this.prop].splice(index, 1);
+                        } else {
+                            if(!this.isMultiSelect() && !this.maxOptions || this.entity[this.prop].length < this.maxOptions) {
+                                this.entity[this.prop].push(value)
+                            } else {
+                                this.entity[this.prop].push(value)
+                            }
+                        }
                     }
 
-                    this.$emit('change', {entity: this.entity, prop: this.prop, oldValue: oldValue, newValue: event.target.value});
+                    this.$emit('change', {entity: this.entity, prop: this.prop, oldValue: oldValue, newValue: value});
+                } else if(this.is('links')) { 
+                    this.entity[this.prop] = event; 
+
+                    this.$emit('change', {entity: this.entity, prop: this.prop, oldValue: oldValue, newValue: event});
+                } else if(this.is('municipio')) {
+                    this.entity[this.prop] = event; 
+
+                    this.$emit('change', {entity: this.entity, prop: this.prop, oldValue: oldValue, newValue: event});
                 } else {
                     this.entity[this.prop] = event.target.value;
                     this.$emit('change', {entity: this.entity, prop: this.prop, oldValue: oldValue, newValue: event.target.value});
                 }
 
                 if (this.autosave && (now || JSON.stringify(this.entity[this.prop]) != JSON.stringify(oldValue))) {
-                    this.entity.save(now ? 0 : this.autosave).then(() => {
+                    this.entity.save(this.autosave).then(() => {
                         this.$emit('save', this.entity);
                     });
                 }
 
-            }, now ? 0 : this.debounce);
+            }, this.debounce);
+
+
+            if(this.is('textarea')) {
+                event.target.style.height = "auto";
+                event.target.style.height = (event.target.scrollHeight + 20) + "px";
+            }
         },
 
         is(type) {
             return this.fieldType == type;
+        },
+
+        isMultiSelect() {
+            let registrationFieldConfiguration = this.description.registrationFieldConfiguration
+            
+            if (this.is('multiselect')) {
+                if(registrationFieldConfiguration?.fieldType && this.entitiesFildTypes.includes(registrationFieldConfiguration?.fieldType)) {
+                    const config = registrationFieldConfiguration?.config;
+                    return (config?.viewMode === 'tag') || (!config?.viewMode && this.description.optionsOrder?.length > 15);
+                } else {
+                    return true;
+                }
+            } else if (this.is('checklist')) {
+                const config = registrationFieldConfiguration?.config;
+                return (config?.viewMode === 'tag') || (!config?.viewMode && this.description.optionsOrder?.length > 15);
+            } else {
+                return false;
+            }
+        },
+
+        isReadonly() {
+            const userPermission = this.entity.currentUserPermissions?.modifyReadonlyData;
+
+            if(this.description.readonly) {
+                if(userPermission || !this.value) {
+                    this.readonly = false;
+                } else {
+                    this.readonly = true;
+                }
+            }
         }
     },
 });

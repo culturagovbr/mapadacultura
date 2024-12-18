@@ -84,6 +84,13 @@ class RegistrationEvaluation extends \MapasCulturais\Entity {
      */
     protected $createTimestamp;
 
+     /**
+     * @var \DateTime
+     *
+     * @ORM\Column(name="sent_timestamp", type="datetime", nullable=true)
+     */
+    protected $sentTimestamp;
+
     /**
      * @var \DateTime
      *
@@ -97,6 +104,13 @@ class RegistrationEvaluation extends \MapasCulturais\Entity {
      * @ORM\Column(name="status", type="smallint", nullable=true)
      */
     protected $status = self::STATUS_DRAFT;
+
+    /**
+     * @var integer
+     *
+     * @ORM\Column(name="is_tiebreaker", type="boolean", nullable=true)
+     */
+    protected $isTiebreaker = false;
 
     /**
      * flag que diz que a avaliação está sendo enviada
@@ -118,10 +132,17 @@ class RegistrationEvaluation extends \MapasCulturais\Entity {
     }
 
     function send($flush = false) {
+        $app = App::i();
         $this->registration->checkPermission('evaluate');
+
+        $app->applyHookBoundTo($this, "{$this->hookClassName}.send:before");
+        
         $this->_sending = true;
         $this->status = RegistrationEvaluation::STATUS_SENT;
+        $this->sentTimestamp = new \DateTime;
         $this->save($flush);
+
+        $app->applyHookBoundTo($this, "{$this->hookPrefix}.send:after");
     }
     
     function getEvaluationData(){
@@ -201,10 +222,6 @@ class RegistrationEvaluation extends \MapasCulturais\Entity {
             return true;
         }
 
-        if($this->registration->opportunity->publishedRegistrations){
-            return false;
-        }
-
         if($this->registration->opportunity->canUser('@control', $user)){
             return true;
         }
@@ -263,13 +280,25 @@ class RegistrationEvaluation extends \MapasCulturais\Entity {
         return App::i()->createUrl('registration', 'view', [$this->registration->id, 'uid' => $this->user->id]);
     }
 
+    public static function getEntityTypeLabel($plural = false): string {
+        if ($plural)
+            return \MapasCulturais\i::__('Avaliações de Inscrições');
+        else
+            return \MapasCulturais\i::__('Avaliação de Inscrição');
+    }
+
     //============================================================= //
     // The following lines ara used by MapasCulturais hook system.
     // Please do not change them.
     // ============================================================ //
 
     /** @ORM\PrePersist */
-    public function prePersist($args = null){ parent::prePersist($args); }
+    public function prePersist($args = null){ 
+        if($this->registration && $this->registration->needsTiebreaker()){
+            $this->isTiebreaker = true;
+        }
+        parent::prePersist($args); 
+    }
     /** @ORM\PostPersist */
     public function postPersist($args = null){
         parent::postPersist($args);

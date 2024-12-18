@@ -417,11 +417,11 @@ abstract class Entity implements \JsonSerializable{
             return true;
         } 
         
-        if ($this->usesNested() && $this->parent && $this->parent->canUser('@control')) {
+        if ($this->usesNested() && $this->parent && $this->parent->canUser('@control', $user)) {
             return true;
         } 
         
-        if (isset($this->owner) && $this->owner->canUser('@control')) {
+        if (isset($this->owner) && $this->owner->canUser('@control', $user)) {
             return true;
         }
 
@@ -445,6 +445,10 @@ abstract class Entity implements \JsonSerializable{
         $result = false;
 
         if (!empty($user)) {
+            $cache_key = "{$this}:canUser({$user->id}):{$action}";
+            if($app->config['app.usePermissionsCache'] && $app->cache->contains($cache_key)){
+                return $app->cache->fetch($cache_key);
+            }
             $class_parts = explode('\\', $this->getClassName());
             $permission = end($class_parts);
 
@@ -465,6 +469,9 @@ abstract class Entity implements \JsonSerializable{
             $app->applyHookBoundTo($this, 'can(' . $this->getHookClassPath() . '.' . $action . ')', ['user' => $user, 'result' => &$result]);
             $app->applyHookBoundTo($this, $this->getHookPrefix() . '.canUser(' . $action . ')', ['user' => $user, 'result' => &$result]);
 
+            if($app->config['app.usePermissionsCache']){
+                $app->cache->save($cache_key, $result, $app->config['app.permissionsCache.lifetime']);
+            }
         }
 
         return $result;
@@ -487,6 +494,10 @@ abstract class Entity implements \JsonSerializable{
     }
 
     public function isUserAdmin(UserInterface $user, $role = 'admin'){
+        if($user->is('guest')) {
+            return false;
+        }
+        
         $result = false;
         if($this->usesOriginSubsite()){
             if($user->is($role, $this->_subsiteId)){
@@ -809,6 +820,14 @@ abstract class Entity implements \JsonSerializable{
         $requests = [];
 
         $hook_prefix = $this->getHookPrefix();
+
+        if($this->usesLock() && $this->isLocked()) {
+            $lock_info = $this->isLocked();
+
+            if($lock_info['userId'] != $app->user->id) {
+                throw new Exceptions\PermissionDenied($app->user, message: i::__('A entidade está bloqueada por outro usuário.'), code: Exceptions\PermissionDenied::CODE_ENTITY_LOCKED);
+            }
+        }
 
         try {
             $app->applyHookBoundTo($this, "{$hook_prefix}.save:requests", [&$requests]);
