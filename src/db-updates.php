@@ -2362,6 +2362,41 @@ $$
             __exec("ALTER TABLE opportunity ADD COLUMN continuous_flow TIMESTAMP NULL");
         }
     },
+    'Atualizando as áreas de Atuação' => function() use($conn) {
+        __try("
+        -- Adicionando áreas novas
+        with areas(term) as(
+            values ('Acervos Públicos ou de Interesse Público'), ('Animação'), ('Áreas técnicas da cultura'), ('Arte-Educação'), ('Artes Cênicas'), ('Arte Gráfica'), ('Arte Santeira'), ('Artes Clássicas'), ('Artes do Espetáculo'), ('Artes Integradas'), ('Bandas de Congo e Ticumbi'), ('Bibliotecas'), ('Caboclinho'), ('Canto Coral'), ('Capoeira'), ('Carimbó'), ('Centros de Memória'), ('Carnaval'), ('Cavalo Marinho'), ('Ciranda'), ('Congado'), ('Conservação e Restauro'), ('Construção Civil Tradicional'), ('Cultura Afro-Brasileira'), ('Cultura Alimentar'), ('Cultura DEF'), ('Cultura e Direitos Humanos'), ('Cultura Urbana'), ('Cultura Hip-Hop e Funk'), ('Cultura, Infância e Adolescência'), ('Culturas dos Povos de Comunidades Tradicionais de Matriz Africana'), ('Culturas dos Povos Nômades'), ('Culturas Populares e Tradicionais'), ('Culturas de Povos de Terreiros'), ('Culturas Quilombolas'), ('Dança de Salão'), ('Desenho Industrial'), ('Design de Interiores'), ('Design Paisagístico'), ('Escultura'), ('Economia da Cultura'), ('Tradição Oral e Falares'), ('Festas Populares'), ('Festejos Juninos'), ('Feiras e Exposições'), ('Forró'), ('Grafite'), ('Gravura'), ('Humor'), ('Intercâmbio Cultural'), ('Internet Podcasting'), ('Jongo'), ('Jornais e Revistas'), ('Lidas Campeiras'), ('Linguagem'), ('Línguas'), ('Manifestações Artísticas Culturais Afro-Brasileiras'), ('Maracatu'), ('Memória'), ('Mídias Livres'), ('Mímica'), ('Música Erudita'), ('Música Instrumental'), ('Música Popular'), ('Ourivesaria'), ('Paisagens culturais'), ('Paradista'), ('Patrimônio Natural'), ('Performance'), ('Pesca Artesanal'), ('Pesquisa & Desenvolvimento (P&D)'), ('Pintura'), ('Pintura Corporal'), ('Produção de Doces Tradicionais'), ('Produção de Eventos'), ('Quadrilha Junina'), ('Reisado'), ('Sítios Históricos e Arqueológicos'), ('Tambor de Crioula'), ('Tecnologias Culturais'), ('Tradições'), ('Vídeo'), ('Xondaro')
+        )
+        insert into term (id, taxonomy, term)
+         select nextval('term_id_seq'::regclass),
+                'area' as taxonomy,
+                a.term as term
+           from areas a
+      left join term t on t.term = a.term
+          where t.id is null;");
+
+        __exec("update term set term = 'Arquitetura e Urbanismo' where id = 270;");
+        __exec("update term set term = 'Cultura LGBTQIAPN+' where id = 21;");
+        __exec("update term set term = 'Outra' where id = 227;");
+        __exec("update term set term = 'Cultura e Comunicação' where id = 27;");
+        __exec("update term set term = 'Cultura e Educação' where id = 29;");
+        __exec("update term set term = 'Cultura e Esporte' where id = 98;");
+        __exec("update term set term = 'Cultura e Meio Ambiente' where id = 68;");
+        __exec("update term set term = 'Cultura e Saúde' where id = 179;");
+        __exec("update term set term = 'Culturas dos Povos Indígenas' where id = 178;");
+        __exec("update term set term = 'Culturas Estrangeiras' where id = 198;");
+        __exec("update term set term = 'Design de Moda' where id = 65;");
+        __exec("update term set term = 'Design Gráfico' where id = 102;");
+        __exec("update term set term = 'História e Cultura' where id = 167;");
+        __exec("update term set term = 'Jornalismo e Cultura' where id = 25;");
+        __exec("update term set term = 'Mídias Sociais e Mídias Interativas' where id = 14;");
+        __exec("update term set term = 'Museologia' where id = 217;");
+        __exec("update term set term = 'Patrimônio Cultural Imaterial' where id = 31;");
+        __exec("update term set term = 'Pesquisa em Cultura' where id = 166;");
+        __exec("update term set term = 'Serviços Criativos' where id = 22;");
+        __exec("update term set term = 'Turismo e Cultura' where id = 103;");
+    }
 
     "Renomeia a comissão de avaliação" => function () use($conn) {
         $name = i::__('Comissão de avaliação');
