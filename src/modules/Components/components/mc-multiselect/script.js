@@ -60,7 +60,7 @@ app.component('mc-multiselect', {
 
         placeholder: {
             type: String,
-            default: 'Selecione'
+            default: 'Digite para buscar'
         },
     },
 
@@ -169,7 +169,9 @@ app.component('mc-multiselect', {
             const refOptions = this.$refs.options;
             const refSelected = this.$refs.selected;
 
-            refOptions.style.minWidth = refSelected.clientWidth + 'px'; 
+            if(refSelected) {
+                refOptions.style.minWidth = refSelected.clientWidth + 'px'; 
+            }
 
             this.$emit('open', this);
         },

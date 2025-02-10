@@ -9,7 +9,7 @@ return array(
     'metadata' => array(
         'nomeCompleto' => array(
             'private' => true,
-            'label' => \MapasCulturais\i::__('Nome completo ou Razão Social'),
+            'label' => \MapasCulturais\i::__('Nome Completo ou Razão Social'),
             'validations' => array(
                 //'required' => \MapasCulturais\i::__('Seu nome completo ou jurídico deve ser informado.')
             ),
@@ -18,7 +18,7 @@ return array(
 
         'nomeSocial' => array(
             'private' => true,
-            'label' => \MapasCulturais\i::__('Nome Social'),
+            'label' => \MapasCulturais\i::__('Nome Social ou Nome Fantasia'),
             'available_for_opportunities' => true,
         ),
 
@@ -223,6 +223,7 @@ return array(
             'label' => \MapasCulturais\i::__('Data de Nascimento/Fundação'),
             'type' => 'date',
             'serialize' => function($value, $entity = null){
+               if(is_null($value)) { return null; }
                $this->hook("entity(<<*>>).save:before", function() use ($entity){
                     /** @var MapasCulturais\Entity $entity */
                     if($this->equals($entity)){
@@ -255,16 +256,6 @@ return array(
                 return $value ? true : false;
             },
             'available_for_opportunities' => true
-        ),
-
-        'localizacao' => array(
-            'label' => \MapasCulturais\i::__('Localização'),
-            'type' => 'select',
-            'options' => array(
-                '' => \MapasCulturais\i::__('Não Informar'),
-                'Pública' => \MapasCulturais\i::__('Pública'),
-                'Privada' => \MapasCulturais\i::__('Privada')
-            )
         ),
 
         'genero' => array(

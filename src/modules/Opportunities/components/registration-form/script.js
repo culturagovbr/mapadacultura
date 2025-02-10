@@ -29,6 +29,9 @@ app.component('registration-form', {
     },
 
     computed: {
+        description() {
+            return $DESCRIPTIONS.registration
+        },
         preview () {
             return this.registration.id === -1;
         },
@@ -141,9 +144,46 @@ app.component('registration-form', {
     },
 
     methods: {
+        showField(field, type) {
+            if(field.fieldType == type) {
+                return true;
+            }
+
+            if(field.fieldType == 'agent-collective-field' || field.fieldType == 'agent-owner-field') {
+                if(this.description[field.fieldName].type == type) {
+                    return true;
+                }
+            }
+        },
         isDisabled(field) {
             let fieldName = field.fieldName || field.groupName;
             return this.editableFields.length > 0 ? !this.editableFields.includes(fieldName) : false;
+        },
+
+        clearFields() {
+            this.$nextTick(() => {
+                const registration = this.registration;
+                const fields = [...$MAPAS.config.registrationForm.fields, ...$MAPAS.config.registrationForm.files];
+
+                for(let i = 0; i < 4; i++) {
+                    for(let field of fields) {
+                        if (field.conditional) {
+                            const fieldName = field.conditionalField;
+                            const fieldValue = field.conditionalValue;
+
+                            if (fieldName) {
+                                if(registration[fieldName] instanceof Array) {
+                                    if (!registration[fieldName].includes(fieldValue)) {
+                                        registration[field.fieldName] = null;
+                                    }
+                                } else if (registration[fieldName] != fieldValue) {
+                                    registration[field.fieldName] = null;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
     },
 });

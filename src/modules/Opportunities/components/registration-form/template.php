@@ -30,17 +30,18 @@
             </template>
             <template #content>
                 <template v-for="field in section.fields" :key="field.fieldName || field.groupName">
-                    <registration-field-address v-if="field.fieldType == 'addresses'" 
+                    <registration-field-address v-if="showField(field, 'addresses')" 
                         :registration="registration"
                         :disabled="isDisabled(field)"
                         :prop="field.fieldName"></registration-field-address>
 
-                    <registration-field-persons v-if="field.fieldType == 'persons'" 
+                    <registration-field-persons v-if="showField(field, 'persons')" 
                         :registration="registration"
                         :disabled="isDisabled(field)"
                         :prop="field.fieldName"></registration-field-persons>
                         
-                    <entity-field v-else-if="field.fieldName && field.fieldType != 'addresses' && field.fieldType != 'persons'" 
+                    <entity-field v-else-if="field.fieldName && field.fieldType != 'addresses' && field.fieldType != 'persons'"
+                        @change="clearFields()" 
                         :entity="registration" 
                         :disabled="isDisabled(field)"
                         :prop="field.fieldName" 

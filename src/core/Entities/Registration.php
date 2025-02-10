@@ -258,6 +258,13 @@ class Registration extends \MapasCulturais\Entity
      */
     protected $subsite;
 
+    /**
+     * @var dateTime
+     *
+     * @ORM\Column(name="update_timestamp", type="datetime", nullable=true)
+     */
+    protected $updateTimestamp;
+
 
     public $preview = false;
 
@@ -1334,7 +1341,7 @@ class Registration extends \MapasCulturais\Entity
               
                 $_fied_name = $conf->conditionalField;
                 $_fied_value = $conf->conditionalValue;
-                if ($rfc->required) {
+                if ($field->required) {
                     if (is_array($this->$_fied_name) && in_array($_fied_value, $this->$_fied_name)) {
                         $field_required = true;
                     } else {
