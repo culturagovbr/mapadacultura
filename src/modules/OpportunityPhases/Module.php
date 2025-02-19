@@ -440,7 +440,7 @@ class Module extends \MapasCulturais\Module{
             $query = $app->em->createQuery("
                 SELECT o
                 FROM $class o
-                WHERE o.parent = :parent
+                WHERE o.parent = :parent AND o.status = -1
                 ORDER BY o.registrationFrom ASC, o.id ASC");
 
             $query->setParameters([
@@ -485,6 +485,7 @@ class Module extends \MapasCulturais\Module{
                         $app->applyHook('module(OpportunityPhases).dataCollectionPhaseData', [&$mout_simplify]);
 
                         $item = $opportunity->simplify("{$mout_simplify},type,publishedRegistrations,publishTimestamp,registrationFrom,registrationTo,isFirstPhase,isLastPhase,files");
+                        $item->appealPhase = $opportunity->appealPhase;
 
                         $item->registrationSteps = [];
                         foreach ($opportunity->registrationSteps as $step) {
@@ -494,6 +495,7 @@ class Module extends \MapasCulturais\Module{
 
                         if($emc){
                             $item->evaluationMethodConfiguration = $emc->simplify("id,name,evaluationFrom,evaluationTo,useCommitteeGroups,evaluateSelfApplication");
+                            $item->evaluationMethodConfiguration->appealPhase = $emc->appealPhase;
                         }
 
                         $result[] = $item;
@@ -507,7 +509,10 @@ class Module extends \MapasCulturais\Module{
 
                         $app->applyHook('module(OpportunityPhases).evaluationPhaseData', [&$mout_simplify]);
 
-                        $result[] = $emc->simplify("{$mout_simplify},opportunity,infos,evaluationFrom,evaluationTo");
+                        $item = $emc->simplify("{$mout_simplify},opportunity,infos,evaluationFrom,evaluationTo");
+                        $item->appealPhase = $emc->appealPhase;
+
+                        $result[] = $item;
                     }
                 }
             }
@@ -654,6 +659,19 @@ class Module extends \MapasCulturais\Module{
             }
         });
 
+        $app->hook('entity(Registration).get(appealPhase)', function(&$value) use($registration_repository) {
+            /** @var Registration $this */
+
+            $this->enableCacheGetterResult('appealPhase');
+
+            if($appeal_phase = $this->opportunity->appealPhase) {
+                $value = $registration_repository->findOneBy([
+                    'opportunity' => $appeal_phase, 
+                    'number' => $this->number
+                ]);
+            }
+        });
+
         /** @var \MapasCulturais\Connection $conn */
         $conn = $app->em->getConnection();
 
@@ -760,12 +778,14 @@ class Module extends \MapasCulturais\Module{
          */
 
         $app->hook('entity(Opportunity).canUser(view)', function($user, &$result){
+            /** @var Opportunity $this */
             if($this->isOpportunityPhase && $this->status === -1){
                 $result = true;
             }
         });
 
         $app->hook('entity(Registration).canUser(view)', function($user, &$result) use($app){
+            /** @var Registration $this */
             if($result){
                 return;
             }
@@ -774,6 +794,31 @@ class Module extends \MapasCulturais\Module{
                 $next_phase_registration = $app->repo('Registration')->find($registration_id);
                 if ($next_phase_registration) {
                     $result = $next_phase_registration->canUser('view', $user);
+                }
+            }
+
+            if(!$result && ($appeal_phase = $this->appealPhase)) {
+                $result = $appeal_phase->canUser('view', $user);
+            }
+        });
+
+        $app->hook('entity(Registration).canUser(viewPrivateData)', function($user, &$result) use($app, $registration_repository){
+            /** @var Registration $this */
+            if($result){
+                return;
+            }
+            
+            if(!$result) {
+                if($appeal_phase = $this->opportunity->appealPhase) {
+
+                    $registration_appeal_phase = $registration_repository->findOneBy([
+                        'opportunity' => $appeal_phase, 
+                        'number' => $this->number
+                    ]);
+
+                    if($registration_appeal_phase) {
+                        $result = $registration_appeal_phase->canUser('viewPrivateData', $user);
+                    }
                 }
             }
         });
@@ -830,6 +875,12 @@ class Module extends \MapasCulturais\Module{
 
         /** enfileira job para sincronização das inscrições em segundo plano */
         $app->hook('Entities\Opportunity::enqueueRegistrationSync', function($value, array $registrations = []) use($app) {
+            
+            // Não deve sincronizar as inscrições em fase de recurso
+            if ($this->isAppealPhase) {
+                return false;
+            }
+
             $data = [
                 'opportunity' => $this,
                 'registrations' => $registrations
@@ -842,7 +893,8 @@ class Module extends \MapasCulturais\Module{
         $app->hook('Entities\Opportunity::syncRegistrations', function($value, array $registrations = []) use($app) {
             /** @var Opportunity $this */
 
-            if ($this->isFirstPhase) {
+            // Não deve sincronizar as inscrições da primeira fase ou fase de recurso
+            if ($this->isFirstPhase || $this->isAppealPhase) {
                 return false;
             }
 
@@ -875,7 +927,7 @@ class Module extends \MapasCulturais\Module{
         $app->hook('Entities\Opportunity::removeOrphanRegistrations', function($value, array $registrations = []) use($app) {
             /** @var Opportunity $this */
 
-            if ($this->isFirstPhase || $this->isLastPhase) {
+            if ($this->isFirstPhase || $this->isLastPhase || $this->isAppealPhase) {
                 return;
             }
 
@@ -955,7 +1007,8 @@ class Module extends \MapasCulturais\Module{
         $app->hook('Entities\Opportunity::importPreviousPhaseRegistrations', function($value, $as_draft = false, array $registrations = []) use($app, $self){
             /** @var Opportunity $this */
 
-            if ($this->isFirstPhase) {
+            // Não deve sincronizar as inscrições na primeira fase e na fase de recurso
+            if ($this->isFirstPhase || $this->isAppealPhase) {
                 return;
             }
 
@@ -1154,7 +1207,14 @@ class Module extends \MapasCulturais\Module{
             if($this->skipSync) {
                 return;
             }
+
             $current_phase = $this->opportunity;
+
+            // Não deve sincronizar inscrições em fase de recursos
+            if ($current_phase->isAppealPhase) {
+                return;
+            }
+
             if($next_phase = $current_phase->nextPhase){
                 $next_phase->enqueueRegistrationSync([$this]);
                 if(!$next_phase->isLastPhase) {
@@ -1367,6 +1427,10 @@ class Module extends \MapasCulturais\Module{
                 }
             }
 
+            if (!$phase && $this->opportunity->status == Opportunity::STATUS_APPEAL_PHASE) {
+                $phase = $this->opportunity;
+            }
+
             if(!$phase) {
                 // se entrou aqui é pq todas as fases tem método de avaliação,
                 // então precisamos criar uma nova fase (opportunity) para abrigar
@@ -1499,6 +1563,7 @@ class Module extends \MapasCulturais\Module{
 
             $app->hook('entity(Registration).insert:after', function() use($app){
                 /** @var Registration $this */
+
                 $app->disableAccessControl();
 
                 if ($this->previousPhase) {
@@ -1518,6 +1583,7 @@ class Module extends \MapasCulturais\Module{
 
             $app->hook('entity(Registration).update:after', function() use($app){
                 /** @var Registration $this */
+
                 $app->disableAccessControl();
 
                 if( $this->nextPhase){

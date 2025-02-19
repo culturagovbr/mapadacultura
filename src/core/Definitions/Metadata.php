@@ -286,7 +286,7 @@ class Metadata extends \MapasCulturais\Definition{
                     $id = $matches[3];
                     return $app->repo($class)->find($id);
                 }
-                return is_null($value) ? null : (array) json_decode($value);
+                return $value;
             },
             'bankFields' => function($value) {
                 return is_null($value) ? null : json_decode($value);
