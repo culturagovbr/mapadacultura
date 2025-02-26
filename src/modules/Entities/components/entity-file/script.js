@@ -72,6 +72,7 @@ app.component('entity-file', {
         uploadOnSubmit: {
             type: Boolean,
             default: true,
+        },
         buttonTextValue: {
             type: String,
             required: false,
