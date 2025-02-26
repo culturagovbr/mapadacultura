@@ -77,6 +77,15 @@ $this->import('
                                         <small>{{evaluation.agentsData?.['coletivo']?.name}}</small>
                                     </span>
                                 </div>
+
+                            <div class="coletive" v-if="evaluation.agentsData?.['coletivo']?.nomeCompleto">
+                            <span>
+                                <small class="bold"><?= i::__('Agente coletivo') ?></small>
+                            </span>
+                            <span>
+                                <small>{{evaluation.agentsData?.['coletivo']?.nomeCompleto}}</small>
+                            </span>
+
                             </div>
 
                             <div class="card-content">
