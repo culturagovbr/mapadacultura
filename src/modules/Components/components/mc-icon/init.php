@@ -115,6 +115,7 @@ $iconset = [
     'question' => 'fe:question',
     'required' => 'fontisto:asterisk',
     'role'  => 'ri:profile-line',
+    'integration'  => 'mdi:database-cog-outline',
     'seal' => 'mdi:seal-variant',
     'select' => 'octicon:single-select-24',
     'search' => 'ant-design:search-outlined',
