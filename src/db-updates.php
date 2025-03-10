@@ -1055,6 +1055,11 @@ return [
         }
     },
 
+    'altera tipo da coluna chat_message.payload para json' => function () {
+        __exec("UPDATE chat_message SET payload = concat('\"',payload,'\"')");
+        __exec("ALTER TABLE chat_message ALTER COLUMN payload SET DATA TYPE JSON USING payload::JSON");
+    },
+    
     'create table workplan' => function () {
         __exec("CREATE TABLE registration_workplan (
           id SERIAL PRIMARY KEY,
