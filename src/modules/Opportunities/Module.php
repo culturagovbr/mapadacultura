@@ -169,7 +169,7 @@ class Module extends \MapasCulturais\Module{
                 $app->enqueueOrReplaceJob(Jobs\UpdateSummaryCaches::SLUG, [
                     'opportunity' => $this->opportunity,
                     'evaluationMethodConfiguration' => $evaluation_method_configuration,
-                ], '10 seconds');
+                ], '90 seconds');
                 $app->mscache->delete($cache_key);
             }
         });
@@ -183,7 +183,7 @@ class Module extends \MapasCulturais\Module{
             do{
                 $app->enqueueOrReplaceJob(Jobs\UpdateSummaryCaches::SLUG, [
                     'opportunity' => $opportunity
-                ], '10 seconds');
+                ], '90 seconds');
 
                 $opportunity = $opportunity->nextPhase;
 
@@ -197,7 +197,7 @@ class Module extends \MapasCulturais\Module{
                 $app->mscache->save($cache_key, true, 10);
                 $app->enqueueOrReplaceJob(Jobs\UpdateSummaryCaches::SLUG, [
                     'evaluationMethodConfiguration' => $this->registration->opportunity->evaluationMethodConfiguration
-                ], '10 seconds');
+                ], '90 seconds');
                 $app->mscache->delete($cache_key);
             }
 
@@ -232,7 +232,7 @@ class Module extends \MapasCulturais\Module{
          *
          * @todo pensar uma maneira de ativas os jobs sem necessidade de salvar as fases
          */
-        $app->hook("entity(Opportunity).<<(un)?publish|(un)?archive|(un)?delete|destroy>>:after", function() use ($app){
+        $app->hook("entity(Opportunity).<<(un)?publish|(un)?archive|(un)?delete>>:after", function() use ($app){
             /** @var Opportunity $this */
 
             foreach($this->allPhases as $phase) {
@@ -572,7 +572,7 @@ class Module extends \MapasCulturais\Module{
             ];
         });
 
-        $app->hook('entity(EvaluationMethodConfiguration).propertiesMetadata', function(&$result) {
+        $app->hook('entity(EvaluationMethodConfiguration).propertiesMetadata', function(&$result) use($app) {
             $result['useCommitteeGroups'] = [
                 'isMetadata' => false,
                 'isEntityRelation' => false,
@@ -585,6 +585,17 @@ class Module extends \MapasCulturais\Module{
                 'isReadonly' => true,
                 'label' => i::__('Indica se pode ser utilizada a auto aplicação de resultados')
             ];
+
+            // Remove os tipos de avaliação internos da lista de tipos de avaliação
+            $public_evaluation_methods = $app->getRegisteredEvaluationMethods();
+            $types = $result['type']['options'];
+            foreach($types as $type => $label) {
+                if(!isset($public_evaluation_methods[$type])) {
+                    unset($result['type']['options'][$type]);
+                    unset($result['type']['optionsOrder'][array_search($type, $result['type']['optionsOrder'])]);
+                    $result['type']['optionsOrder'] = array_values($result['type']['optionsOrder']);
+                }
+            }
         });
 
        // Atualiza a coluna metadata da relação do agente com a avaliação com od dados do summary das avaliações no momento de inserir, atualizar ou remover.
@@ -683,7 +694,7 @@ class Module extends \MapasCulturais\Module{
                 }
 
                 if ($all_status_sent) {
-                    if($evaluation_type == 'simple') {
+                    if($evaluation_type == 'simple' || $evaluation_type == 'continuous') {
                         $value = $registration->consolidatedResult;
                     }
 
@@ -773,9 +784,13 @@ class Module extends \MapasCulturais\Module{
             /** @var \MapasCulturais\Entities\Registration $this */
 
             $opportunity = $this->opportunity;
+            $seals = $opportunity->proponentSeals;
+
+            if (!$seals) {
+                return;
+            }
 
             if ($opportunity && ($opportunity->publishedRegistrations || $this->opportunity->firstPhase->isContinuousFlow)) {
-                $seals = $opportunity->proponentSeals;
                 $proponent_type = $this->proponentType;
                 $owner = $this->owner;
                 $categories_seals = $opportunity->categorySeals;
