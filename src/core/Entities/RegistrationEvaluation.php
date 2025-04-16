@@ -29,6 +29,10 @@ use RuntimeException;
  * @property Registration $registration
  * @property User $user
  * @property integer $status
+ * @property bool $isTiebreaker
+ * @property string $committee
+ * 
+ * 
  *
  * @ORM\Table(name="registration_evaluation")
  * @ORM\Entity
@@ -36,6 +40,7 @@ use RuntimeException;
  * @ORM\HasLifecycleCallbacks
  */
 class RegistrationEvaluation extends \MapasCulturais\Entity {
+    use Traits\EntityFiles;
     use Traits\EntityRevision;
 
     const STATUS_EVALUATED = self::STATUS_ENABLED;
@@ -121,6 +126,23 @@ class RegistrationEvaluation extends \MapasCulturais\Entity {
     protected $isTiebreaker = false;
 
     /**
+     * @var \MapasCulturais\Entities\RegistrationEvaluationFile[] Files
+     *
+     * @ORM\OneToMany(targetEntity="MapasCulturais\Entities\RegistrationEvaluationFile", mappedBy="owner", cascade={"remove"}, orphanRemoval=true)
+     * @ORM\JoinColumn(name="id", referencedColumnName="object_id", onDelete="CASCADE")
+    */
+    protected $__files;
+
+    /**
+     * Nome da comissão avaliadora pela qual o avaliador avaliou essa avaliação
+     * 
+     * @var string
+     *
+     * @ORM\Column(name="committee", type="string", nullable=true)
+     */
+    protected $committee = '';
+
+    /**
      * flag que diz que a avaliação está sendo enviada
      * @var boolean
      */
@@ -130,13 +152,13 @@ class RegistrationEvaluation extends \MapasCulturais\Entity {
         if(empty($this->status)){
             $this->status = self::STATUS_DRAFT;
         }
+
+        if(empty($this->committee)){
+            $registration_valuers = $this->registration->valuers;
+            $this->committee = $registration_valuers[$this->user->id] ?? '';
+        }
         
         parent::save($flush);
-        $app = App::i();
-        $opportunity = $this->registration->opportunity;
-        
-        // cache utilizado pelo endpoint findEvaluations
-        $app->mscache->delete("api:opportunity:{$opportunity->id}:evaluations");
     }
 
     function send($flush = false) {
@@ -280,6 +302,7 @@ class RegistrationEvaluation extends \MapasCulturais\Entity {
         $result['agent'] = $this->user->profile->simplify('id,name,singleUrl');
         $result['registration'] = $this->registration->simplify('id,number,singleUrl');
         $result['singleUrl'] = $this->getSingleUrl();
+        $result['files'] = $this->files;
 
         return $result;
     }

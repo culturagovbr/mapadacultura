@@ -22,7 +22,9 @@ $this->import('
     opportunity-header
     opportunity-phases-timeline
     registration-print
+    registration-workplan-form
     v1-embed-tool
+    registration-evaluation-tab
 ');
 
 $this->breadcrumb = [
@@ -284,6 +286,9 @@ $today = new DateTime();
                                 <?php else: ?>
                                     <?php $this->applyTemplateHook("registration-form-view", 'before', [$phase]) ?>
                                     <v1-embed-tool route="registrationview" :id="<?=$phase->id?>"></v1-embed-tool>
+                                    <?php if ($opportunity->isReportingPhase && $opportunity->parent->enableWorkplan): ?>
+                                        <registration-workplan-form :phase-id="<?= $opportunity->id ?>"></registration-workplan-form>
+                                    <?php endif; ?>
                                     <?php $this->applyTemplateHook("registration-form-view", 'after', [$phase]) ?>
                                 <?php endif ?>
                                 
@@ -292,24 +297,20 @@ $today = new DateTime();
                     <?php endif ?>
                     <?php $phase = $phase->nextPhase; ?>
                 <?php endwhile ?>
-
             </div>
         </mc-tab>
 
         <mc-tab v-if="entity.opportunity.currentUserPermissions['@control']" label="<?= i::_e('Avaliadores') ?>" slug="valuers">
             <div class="registration__content">
                 <?php $phase = $entity; 
-                    while($phase): $opportunity = $phase->opportunity;?>
+                    while($phase):
+                        if (!$phase->opportunity->evaluationMethodConfiguration) {
+                            $phase = $phase->nextPhase; 
+                            continue;
+                        }
+                        ?>
                     <mc-card>
-                        <?php if($today >= $opportunity->registrationFrom):?>
-                            <?php if($opportunity->isFirstPhase):?>
-                                <h2><?= i::__('Inscrição') ?></h2>
-                            <?php else: ?>
-                                <h2><?= $opportunity->name ?></h2>
-                            <?php endif ?>
-
-                            <v1-embed-tool route="valuers" :id="<?=$phase->id?>"></v1-embed-tool>
-                        <?php endif ?>
+                        <registration-evaluation-tab :phase-id="<?= $phase->opportunity->id ?>"></registration-evaluation-tab>
                         <?php $phase = $phase->nextPhase; ?>
                     </mc-card>
                 <?php endwhile ?>

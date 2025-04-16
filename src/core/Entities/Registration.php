@@ -24,9 +24,10 @@ use MapasCulturais\GuestUser;
  * @property-read RegistrationEvaluation[] $sentEvaluations lista de avaliações enviadas
  * @property-read array|object $spaceData retorna o snapshot dos dados do espaço relacionado
  * @property-read array|object $agentsData retorna o snapshot dos dados dos agentes relacionados e do agente owner
- * @property-read array|object $valuersExceptionsList retorna a configuração de exceções da lista de avaliadores, aqueles que não entram na regra de distribuição padrão
- * @property-read array|object $valuersIncludeList retorna a lista de avaliadores incluídos
- * @property-read array|object $valuersExcludeList retorna a lista de avaliadores excluídos
+ * @property-read object $valuersExceptionsList retorna a configuração de exceções da lista de avaliadores, aqueles que não entram na regra de distribuição padrão
+ * @property-read array $valuersIncludeList retorna a lista de avaliadores incluídos
+ * @property-read array $valuersExcludeList retorna a lista de avaliadores excluídos
+ * @property-read array $valuers retorna a lista de avaliadores excluídos
  * @property-read array $statuses Nomes dos status
  *
  * @ORM\Table(name="registration")
@@ -163,13 +164,18 @@ class Registration extends \MapasCulturais\Entity
     protected $range;
     
     /**
-     * @var integer
+     * @var object
      *
      * @ORM\Column(name="valuers_exceptions_list", type="json", nullable=false)
      */
     protected $__valuersExceptionsList;
 
-
+    /**
+     * @var object
+     *
+     * @ORM\Column(name="valuers", type="json", nullable=false)
+     */
+    protected $__valuers;
 
     /**
     * @ORM\OneToMany(targetEntity="MapasCulturais\Entities\RegistrationMeta", mappedBy="owner", cascade={"remove"}, orphanRemoval=true)
@@ -274,6 +280,8 @@ class Registration extends \MapasCulturais\Entity
         $app = App::i();
 
         $this->__valuersExceptionsList = (object) ["include" => [], "exclude" => []];
+
+        $this->__valuers = (object)[];
         
         $this->owner = $app->user->profile;
 
@@ -366,6 +374,41 @@ class Registration extends \MapasCulturais\Entity
 
         return $validations;
     }
+
+    /** 
+     * @inheritdoc
+     */
+    public static function getPropertiesMetadata($include_column_name = false){
+        $result = parent::getPropertiesMetadata($include_column_name);
+        $result['valuersIncludeList'] = [
+            'isEntityRelation' => false,
+            'isMetadata' => false,
+            'isPK' => false,
+            'required' => false,
+            'type' => 'array',
+            'label' => i::__('Lista de de inclusão avaliadores')
+        ];
+        $result['valuersExcludeList'] = [
+            'isEntityRelation' => false,
+            'isMetadata' => false,
+            'isPK' => false,
+            'required' => false,
+            'type' => 'array',
+            'label' => i::__('Lista de exclusão de avaliadores')
+        ];
+
+        $result['valuers'] = [
+            'isEntityRelation' => false,
+            'isMetadata' => false,
+            'isPK' => false,
+            'required' => false,
+            'type' => 'array',
+            'label' => i::__('Lista de avaliadores da inscrição')
+        ];
+
+        return $result;
+    }
+    
     
     function jsonSerialize(): array {
         $this->registerFieldsMetadata();
@@ -391,7 +434,14 @@ class Registration extends \MapasCulturais\Entity
             'editableUntil' => $this->editableUntil,
             'editableFields' => $this->editableFields,
             'editSentTimestamp' => $this->editSentTimestamp,
+            'status' => $this->status,
         ];
+
+        if($this->opportunity->canUser('@control')) {
+            $json['valuersIncludeList'] = $this->valuersIncludeList;
+            $json['valuersExcludeList'] = $this->valuersExcludeList;
+            $json['valuers'] = $this->valuers;
+        }
 
         if($this->canUser('viewConsolidatedResult')){
             $json['evaluationResultValue'] = $this->getEvaluationResultValue();
@@ -733,6 +783,10 @@ class Registration extends \MapasCulturais\Entity
         return 1000;
     }
 
+    function getValuers(): array {
+        return (array) $this->__valuers;
+    }
+
     /**
      * Retorna a configuração de exceções da lista de avaliadores, aqueles que não entram na regra de distribuição padrão
      * 
@@ -784,6 +838,90 @@ class Registration extends \MapasCulturais\Entity
     function getValuersExcludeList(){
         $exceptions = $this->getValuersExceptionsList();
         return (array) $exceptions->exclude;
+    }
+
+    /**
+     * Retorna a lista dos campos verificados e os selos que verificam cada campo
+     *
+     *  @return object Um objeto contendo os selos bloqueados de cada campo.
+     */
+    function getLockedFieldSeals() {
+        $owner_locked_field_seals = (array) $this->owner->lockedFieldSeals;
+
+        $related_agents = $this->relatedAgents ?: [];
+        $collective_locked_field_seals = [];
+        
+        if(isset($related_agents['coletivo'])) {
+            $collective_locked_field_seals = (array) $related_agents['coletivo'][0]->lockedFieldSeals;
+        }
+
+        $locked_field_seals = [];
+
+        $fields = $this->opportunity->registrationFieldConfigurations;
+
+        foreach($fields as $field) {
+            if($field->fieldType == 'agent-owner-field' && isset($owner_locked_field_seals[$field->config['entityField']])) {
+                $locked_field_seals[$field->fieldName] = $owner_locked_field_seals[$field->config['entityField']];
+                
+            }
+
+            if($field->fieldType == 'agent-collective-field' && isset($collective_locked_field_seals[$field->config['entityField']])) {
+                $locked_field_seals[$field->fieldName] = $collective_locked_field_seals[$field->config['entityField']];
+            }
+        }
+        
+        return (object) $locked_field_seals;
+    }
+
+    /**
+     * Retorna a lista dos campos bloqueados.
+     *
+     * @return array Um array contendo os nomes dos campos bloqueados.
+     */
+    function getLockedFields() {
+        $locked_field_seals = (array) $this->lockedFieldSeals;
+
+        $locked_fields = [];
+        if (!empty($locked_field_seals)) {
+            $locked_fields = array_keys($locked_field_seals);
+        }
+
+        return $locked_fields;
+    }
+
+    /**
+     * Obtém as relações de selos do proprietário e dos agentes relacionados.
+     *
+     * @return array Retorna um array contendo todos os selos do proprietário e do coletivo.
+     */
+    function getAgentSealRelations() {
+        $app = App::i();
+        
+        $seals = [];
+        $owner_seals = $this->owner->sealRelations;
+        $related_agents = $this->relatedAgents ?: [];
+        $collective_seals = isset($related_agents['coletivo']) ? $related_agents['coletivo'][0]->sealRelations : [];
+
+        $all_seals = array_merge($owner_seals, $collective_seals);
+
+        if (empty($all_seals)) {
+            return [];
+        }
+        
+        foreach ($all_seals as $relation) {
+            $seals[] = [
+                '__objectType' => 'seal', // Added for compatibility with <mc-avatar>
+                'sealRelationId' => $relation->id,
+                'sealId' => $relation->seal->id,
+                'name' => $relation->seal->name,
+                'files' => $relation->seal->files ?? null,
+                'singleUrl' => $app->createUrl('seal', 'sealRelation', [$relation->id]),
+                'createTimestamp' => $relation->createTimestamp,
+                'isVerificationSeal' => in_array($relation->seal->id, $app->config['app.verifiedSealsIds']),
+            ];
+        }
+    
+        return $seals;
     }
 
     /** 
@@ -1525,7 +1663,7 @@ class Registration extends \MapasCulturais\Entity
             return false;
         }
 
-        if(!in_array($this->opportunity->status, [-1,1]) && !$this->opportunity->canUser('@control', $user)){
+        if(!in_array($this->opportunity->status, [-1,1,-20]) && !$this->opportunity->canUser('@control', $user)){
             return false;
         }
 
@@ -1625,7 +1763,7 @@ class Registration extends \MapasCulturais\Entity
             return true;
         }
 
-        if(!in_array($this->opportunity->status, [-1,1]) && !$this->opportunity->canUser('@control', $user)){
+        if(!in_array($this->opportunity->status, [-1,1,-20]) && !$this->opportunity->canUser('@control', $user)){
             return false;
         }
 
@@ -1806,11 +1944,21 @@ class Registration extends \MapasCulturais\Entity
     }
     
     function getExtraEntitiesToRecreatePermissionCache(): array {
+        $result = [];
+
         if ($previous_phase = $this->previousPhase) {
-            return [$previous_phase];
-        } else {
-            return [];
+            $result[]= $previous_phase;
         }
+
+        if($this->opportunity->isAppealPhase) {
+            $parent_registration = $this->repo()->findOneBy([
+                'number' => $this->number,
+                'opportunity' => $this->opportunity->parent
+            ]);
+            $result[] = $parent_registration;
+        }
+
+        return $result;
     }
 
     function getExtraPermissionCacheUsers(){

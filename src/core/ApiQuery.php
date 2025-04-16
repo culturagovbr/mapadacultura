@@ -225,6 +225,11 @@ class ApiQuery {
     protected $entityRelations = [];
 
     /**
+     * Map of entity fields mappings
+     */
+    protected $fieldMappings = [];
+
+    /**
      * List of registered metadata to the requested entity for this context (subsite?)
      * @var array
      */
@@ -531,6 +536,7 @@ class ApiQuery {
         
         $this->pk = $this->entityClassMetadata->identifier[0];
 
+        $this->fieldMappings = $this->entityClassMetadata->fieldMappings;
         $this->entityProperties = array_keys($this->entityClassMetadata->fieldMappings);
         $this->entityRelations = $this->entityClassMetadata->associationMappings;
         
@@ -851,7 +857,7 @@ class ApiQuery {
         return $params;
     }
 
-    public function getFindDQL(string $select = null) {
+    public function getFindDQL(?string $select = null) {
         $where = $this->generateWhere();
         $order = $this->generateOrder();
         $joins = $this->generateJoins();
@@ -1073,9 +1079,10 @@ class ApiQuery {
         if($app->isAccessControlEnabled() && $this->usesStatus && (!isset($this->apiParams['status']) || !$this->_permission)){
             $params = $this->apiParams;
             
-            if($this->rootEntityClassName === Opportunity::class && (isset($params['id']) || isset($params['status']) || isset($params['parent']))) {
-                $where_status = '(e.status > 0 OR e.status = -1)';    
-            } else {
+            if ($this->rootEntityClassName === Opportunity::class && (isset($params['id']) || isset($params['status']) || isset($params['parent']))) {
+                $where_status = '(e.status > 0 OR e.status = -1 OR e.status = -20)';
+            }
+            else {
                 $where_status = 'e.status > 0';
             }
             $where = $where ? "($where) AND $where_status" : $where_status;
@@ -1207,7 +1214,14 @@ class ApiQuery {
         return $select;
     }
 
+    protected $generatedOrder = '';
+
     protected function generateOrder() {
+        if ($this->generatedOrder) {
+            return $this->generatedOrder;
+        }
+
+        $app = App::i();
         if ($this->_order) {
             $order = [];
             $_order = null;
@@ -1226,19 +1240,30 @@ class ApiQuery {
                 if (key_exists($key, $this->_keys)) {
                     $_order = str_ireplace($key, $this->_keys[$key], $prop);
                 } elseif (in_array($key, $this->entityProperties)) {
-                    $_order = str_ireplace($key, 'e.' . $key, $prop);
+                    $field_type = $this->fieldMappings[$key]['type'];
+
+                    if ($field_type == 'string') {
+                        $_order = str_ireplace($key, 'unaccent(lower(e.' . $key . '))', $prop);
+                    } else {
+                        $_order = str_ireplace($key, 'e.' . $key, $prop);
+                    }
                 } elseif (in_array($key, $this->registeredMetadata)) {
-                    
                     $meta_alias = $this->getAlias('meta_'.$key);
-                    
+
                     $this->joins .= str_replace(['{ALIAS}', '{KEY}'], [$meta_alias, $key], $this->_templateJoinMetadata);
 
-                    $_order = str_replace($key, "$meta_alias.value", $prop);
+                    $meta_type = $app->getRegisteredMetadata($this->entityClassName)[$key]->type;
+
+                    if ($meta_type == 'string') {
+                        $_order = str_replace($key, "unaccent(lower($meta_alias.value))", $prop);
+                    } else {
+                        $_order = str_replace($key, "$meta_alias.value", $prop);
+                    }
 
                 // ordenação de usuário pelo nome do agente profile
                 } else if ($this->entityClassName == User::class && $key == 'name') {
                     $this->joins .= "\n\tLEFT JOIN e.profile __profile__";
-                    $_order = str_replace($key, "__profile__.name", $prop);
+                    $_order = str_replace($key, "unaccent(lower(__profile__.name))", $prop);
                 }
 
                 if($_order) {
@@ -1256,7 +1281,8 @@ class ApiQuery {
                     $order[] = $_order;
                 }
             }
-            return implode(', ', $order);
+            $this->generatedOrder = implode(', ', $order);
+            return $this->generatedOrder;
         } else {
             return null;
         }
@@ -2272,8 +2298,8 @@ class ApiQuery {
 
                 $entity['relatedAgents'] = $relations_by_owner_id[$entity_id] ?? (object)[]; 
                 
-                $permisions = $entity['currentUserPermissions'];
-
+                $permisions = $entity['currentUserPermissions'] ?? [];
+                
                 $can_view_pending = ($permisions['@controll'] ?? false) || 
                                     ($permisions['viewPrivateData'] ?? false) ||
                                     ($permisions['createAgentRelation'] ?? false) ||
@@ -2716,6 +2742,7 @@ class ApiQuery {
                 }
 
                 $this->_relatedSeals[$entity_id][] = [
+                    '__objectType' => 'seal', // Added for compatibility with <mc-avatar>
                     'sealRelationId' => $relation->relation_id,
                     'sealId' => $relation->seal_id,
                     'name' => $relation->seal_name,
@@ -3202,7 +3229,7 @@ class ApiQuery {
                 if($this->usesStatus && $this->_permission == 'view' && !$class::isPrivateEntity()) {
                     $params = $this->apiParams;
                     if($this->entityClassName === Opportunity::class && (isset($params['id']) || isset($params['parent']) || isset($params['status']))) {
-                        $view_where = 'OR e.status > 0 OR e.status = -1';    
+                        $view_where = 'OR e.status > 0 OR e.status = -1 OR e.status = -20';    
                     } else {
                         $view_where = 'OR e.status > 0';
                     }

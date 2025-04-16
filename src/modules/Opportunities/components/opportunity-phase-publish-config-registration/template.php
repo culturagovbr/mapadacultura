@@ -45,7 +45,7 @@ $this->import('
                         <p class="bold"><?= i::__('O resultado será publicado automaticamente') ?></p>
                     </div>
                     <div v-else>
-                        <div v-if="!isOpenPhase" class="col-4">
+                        <div v-if="!isOpenPhase && !phase.publishedRegistrations" class="col-4">
                             <p class="bold"><?= i::__("Você pode publicar o resultado manualmente a qualquer momento utilizando o botão ao lado.") ?></p>
                         </div>
                     </div>
@@ -101,7 +101,7 @@ $this->import('
                     <div class="opportunity-phase-publish-config-registration__button " :class="{'col-6': !phase.isLastPhase}">
                         <mc-confirm-button  yes="<?= i::__('Publicar Resultado')?>" @confirm="publishRegistration()">
                             <template #button="modal">
-                                <button  :class="['button', 'button--primary', {'button--large col-6': !phase.isLastPhase}, {'disabled': !firstPhase.status >0}, {'button--bg': phase.isLastPhase}, {'disabled': isOpenPhase}]" @click="modal.open()">
+                                <button  :class="['button', 'button--primary', {'button--large col-6': !phase.isLastPhase}, {'button--bg': phase.isLastPhase}, {'disabled': isOpenPhase}]" @click="modal.open()">
                                     <?= i::__("Publicar Resultados") ?>
                                 </button>
                             </template>
