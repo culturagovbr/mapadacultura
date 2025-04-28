@@ -12,6 +12,9 @@ class Entity {
 
         this.__originalValues = {};
 
+        this.__lockedFields = [];
+        this.__lockedFieldSeals = {};
+
         // as traduções estão no arquivo texts.php do componente <entity>
         this.text = Utils.getTexts('mc-entity');
     }
@@ -22,7 +25,7 @@ class Entity {
         return entity;
     }
 
-    populate(obj, preserveValues = true) {
+    populate(obj, preserveValues = true, updatedData = null) {
         const __properties = this.$PROPERTIES;
         const __relations = this.$RELATIONS;
         const defaultProperties = [
@@ -32,6 +35,14 @@ class Entity {
         ];
         
         this.populateId(obj);
+
+        if(obj.__lockedFields) {
+            this.__lockedFields = obj.__lockedFields;
+        }
+
+        if(obj.__lockedFieldSeals) {
+            this.__lockedFieldSeals = obj.__lockedFieldSeals;
+        }
 
         for (const prop of defaultProperties) {
             if (this[prop] && !obj[prop]) {
@@ -50,6 +61,10 @@ class Entity {
 
             if(val === undefined && preserveValues) {
                 val = this[prop];
+            }
+
+            if(definition.type === 'entity'){
+                continue;
             }
 
             if(prop === 'status' && preserveValues && this[prop] <= 0 && obj[prop] > 0) {
@@ -106,12 +121,36 @@ class Entity {
             }
         }
 
+        for (let prop in __properties) {
+            let definition = __properties[prop];
+            let val = obj[prop];
+
+            if(val === undefined && preserveValues) {
+                val = this[prop];
+            }
+
+            if (definition.type === 'entity' && val?.['@entityType'] && !(val instanceof Entity)) {
+                const entityApi = new API(val['@entityType'], this.__scope);
+                const entity = entityApi.getEntityInstance(val.id);
+                entity.populate(val);
+                this[prop] = entity;
+            }
+        }
+
         this.populateFiles(obj.files);
         this.populateMetalists(obj.metalists);
 
         this.cleanErrors();
         
-        this.__originalValues = this.data();
+        if (updatedData) {
+            const data = this.data();
+            for (const key in updatedData) {
+                this.__originalValues[key] = data[key];
+            }
+        } else {
+            this.__originalValues = this.data();
+        }
+      
         return this;
     }
 
@@ -205,7 +244,7 @@ class Entity {
             if (val && (typeof val == 'object')) {
                 if (prop == 'type') {
                     val = val.id;
-                } else {
+                } else if (definition.type != 'entity') {
                     result[prop] = JSON.parse(JSON.stringify(val));
                 }
             } else {
@@ -239,10 +278,6 @@ class Entity {
 
         if(onlyModifiedFields) {
             for(let key in result) {
-                if(!result[key] && !this.__originalValues[key]) {
-                    delete result[key];
-                }
-
                 if(JSON.stringify(result[key]) == JSON.stringify(this.__originalValues[key])){
                     delete result[key];
                 }
@@ -300,6 +335,29 @@ class Entity {
 
     get __objectId() {
         return `${this.__scope}-${this.__objectType}-${this.id}`;
+    }
+
+    get $lockedFields() {
+        return this.__lockedFields;
+    }
+
+    get $lockedFieldSeals() {
+        const result = {};
+        if(this.seals && this.seals.length > 0) {
+            const sealsById = {};
+            
+            for (const seal of this.seals) {
+                sealsById[seal.sealId] = seal;
+            }
+
+            for (const field in this.__lockedFieldSeals) {
+                result[field] = this.__lockedFieldSeals[field].map((sealId) => {
+                    return sealsById[sealId];
+                });
+            }
+        }
+
+        return result;
     }
 
     get $RELATIONS() {
@@ -440,7 +498,7 @@ class Entity {
                         } else {
                             this.sendMessage(this.text('entidade salva'));
                         }
-                        this.populate(entity, preserveValues);
+                        this.populate(entity, preserveValues, data);
 
                     }).then((response) => {
                         for(let resolve of this.resolvers) {

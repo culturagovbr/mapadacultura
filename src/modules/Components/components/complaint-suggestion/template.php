@@ -63,11 +63,12 @@ $this->import("
                     <label><?php i::_e('Sua mensagem foi enviada para a equipe responsável. Agradecemos a contribuição.'); ?> </label>
                 </div>
             </template>
-
             <template v-if="!sendSuccess"  #actions="modal">
                 <!-- Componente responsável por renderizar o CAPTCHA -->
                 <mc-captcha @captcha-verified="verifyCaptcha" @captcha-expired="expiredCaptcha" :error="error" class="complaint-suggestion__recaptcha"></mc-captcha>
 
+            <template v-if="!sendSuccess"  #actions="modal">
+                <mc-captcha @captcha-verified="verifyCaptcha" @captcha-expired="expiredCaptcha" class="col-12"></mc-captcha>
                 <button class="button button--primary" @click="send(modal)"><?= i::__('Enviar Denúncia') ?></button>
                 <button class="button button--text button--text-del" @click="modal.close()"><?= i::__('cancelar') ?></button>
             </template>

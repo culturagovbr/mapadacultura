@@ -240,6 +240,7 @@ app.component('opportunity-registrations-table', {
                     value: item.fieldName
                 })));
             }
+            
 
             if(this.phase.evaluationMethodConfiguration){
                 itens.splice(2,0,{ text: "Avaliação", value: "consolidatedResult"});
@@ -285,8 +286,8 @@ app.component('opportunity-registrations-table', {
                 itens.push({ text: __('status', 'opportunity-registrations-table'), value: "status", width: '250px', stickyRight: true})
             }
 
-            let type = this.phase.evaluationMethodConfiguration?.type.id || '';
-            let phases = $MAPAS.opportunityPhases;
+            const type = this.phase.evaluationMethodConfiguration?.type?.id;
+            const phases = $MAPAS.opportunityPhases;
             let hasEvaluationMethodTechnical = false;
 
             for (const phase of phases){
@@ -294,7 +295,8 @@ app.component('opportunity-registrations-table', {
                     break;
                 }
 
-                let phaseType = phase.evaluationMethodConfiguration ? phase.evaluationMethodConfiguration.type.id : phase.type.id;
+                const phaseType = phase.evaluationMethodConfiguration ? phase.evaluationMethodConfiguration.type?.id : phase.type.id;
+
                 if(phaseType == "technical"){
                     hasEvaluationMethodTechnical = true;
                     break;
