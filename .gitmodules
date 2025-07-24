@@ -24,4 +24,5 @@
 	url = https://github.com/culturagovbr/plugin-MapasBlame.git
 [submodule "src/plugins/Lgpd"]
 	path = src/plugins/Lgpd
-	url = git@github.com:culturagovbr/plugin-Lgpd.git
+	url = https://github.com/culturagovbr/plugin-Lgpd.git
+
