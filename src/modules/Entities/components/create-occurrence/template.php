@@ -270,7 +270,7 @@ $this->import('
         <div class="desktop">
             <div class="button-group">
                 <button class="button button--text" @click="cancel(modal)"><?php i::_e('Cancelar')?></button>
-                <button class="button button--primary" @click="create(modal)"><?php i::_e('Inserir ocorrência')?></button>
+                <button class="button button--primary" :entity="entity" @click="saveDataState(modal)"><?php i::_e('Inserir ocorrência')?></button>
             </div>
         </div>
     </template>
