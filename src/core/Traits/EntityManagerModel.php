@@ -310,15 +310,41 @@ trait EntityManagerModel {
 
     private function generateRegistrationFieldsAndFiles($opportunityCurrent, $opportunityNew) : void
     {
+        $stepMap = [];
+
+        // mapear steps novos pelos ids dos steps antigos
+        $existingSteps = array_column($opportunityNew->registrationSteps->toArray(), null, 'id');
+
+        foreach ($opportunityCurrent->registrationSteps as $oldStep) {
+            $stepMap[$oldStep->id] = $existingSteps[$oldStep->id] ?? (function () use ($oldStep, $opportunityNew) {
+                $newStep = clone $oldStep;
+                $newStep->setOpportunity($opportunityNew);
+                $newStep->save(true);
+                return $newStep;
+            })();
+        }
+
         foreach ($opportunityCurrent->getRegistrationFieldConfigurations() as $registrationFieldConfiguration) {
             $fieldConfiguration = clone $registrationFieldConfiguration;
             $fieldConfiguration->setOwnerId($opportunityNew->id);
+
+            // aplicar step correto
+            if (isset($stepMap[$registrationFieldConfiguration->step->id])) {
+                $fieldConfiguration->setStep($stepMap[$registrationFieldConfiguration->step->id]);
+            }
+
             $fieldConfiguration->save(true);
         }
 
         foreach ($opportunityCurrent->getRegistrationFileConfigurations() as $registrationFileConfiguration) {
             $fileConfiguration = clone $registrationFileConfiguration;
             $fileConfiguration->setOwnerId($opportunityNew->id);
+
+            // aplicar step correto
+            if (isset($stepMap[$registrationFileConfiguration->step->id])) {
+                $fileConfiguration->setStep($stepMap[$registrationFileConfiguration->step->id]);
+            }
+
             $fileConfiguration->save(true);
         }
     }
