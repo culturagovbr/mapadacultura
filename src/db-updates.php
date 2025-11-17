@@ -2921,6 +2921,38 @@ $$
                 AND emc.type = 'qualification'
                 AND r.consolidated_result IN ('Habilitado', 'Inabilitado')
         ");
-    }
+    },
+
+    'recreate trigger to insert opportunity data to new model' => function () {
+        __exec("CREATE OR REPLACE FUNCTION fn_propagate_opportunity_insert()
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                IF NEW.parent_id IS NOT NULL THEN
+                    NEW.registration_ranges := (
+                        SELECT registration_ranges
+                        FROM opportunity
+                        WHERE id = NEW.parent_id
+                    );
+
+                    NEW.registration_categories := (
+                        SELECT registration_categories
+                        FROM opportunity
+                        WHERE id = NEW.parent_id
+                    );
+
+                    NEW.registration_proponent_types := (
+                        SELECT registration_proponent_types
+                        FROM opportunity
+                        WHERE id = NEW.parent_id
+                    );
+                END IF;
+
+                RETURN NEW;
+            END;
+            $$;
+        ");
+    },
     
 ] + $updates ;   
