@@ -18,7 +18,18 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Etapas em formulários de inscrição
 
 ### Melhorias
-- Redesenho do formulário de inscrição
+- Redireciona usuario para o perfil quando o mesmo esta em rascunho ou com dados obrigatórios não preechidos
+- Implementa novos hooks na edit de espaço e no componente entity-field
+- Adiciona suporte a autenticação JWT nas requisições para API [(1)](#snp)
+- Adiciona restrição de tipos de arquivo permitidos em campos anexo do formulário
+
+### Correções
+- Corrige warnigs no navegador devido a problemas com o componente entity-field
+- Implementa verificações para evitar warnings indesejados referente ao componente de localização
+- Ajusta ApiQuery para evitar que _addFilterByMetadata crie JOIN's duplicados
+- Corrige função replaces da classe i
+- Corrige nome do hook entity().archive:after
+- Corrige busca pela chave primária da tabela Job
 
 ### Melhorias não funcionais
 - Novos tipos de metadados:
