@@ -310,16 +310,109 @@ trait EntityManagerModel {
 
     private function generateRegistrationFieldsAndFiles($opportunityCurrent, $opportunityNew) : void
     {
-        foreach ($opportunityCurrent->getRegistrationFieldConfigurations() as $registrationFieldConfiguration) {
-            $fieldConfiguration = clone $registrationFieldConfiguration;
-            $fieldConfiguration->setOwnerId($opportunityNew->id);
-            $fieldConfiguration->save(true);
+        $stepMap = [];
+        $fieldNameMap = [];
+
+        // mapear steps novos pelos ids dos steps antigos
+        $existingSteps = array_column($opportunityNew->registrationSteps->toArray(), null, 'id');
+
+        foreach ($opportunityCurrent->registrationSteps as $oldStep) {
+            $stepMap[$oldStep->id] = $existingSteps[$oldStep->id] ?? (function () use ($oldStep, $opportunityNew) {
+                $newStep = clone $oldStep;
+                $newStep->setOpportunity($opportunityNew);
+                $newStep->save(true);
+                return $newStep;
+            })();
         }
 
-        foreach ($opportunityCurrent->getRegistrationFileConfigurations() as $registrationFileConfiguration) {
-            $fileConfiguration = clone $registrationFileConfiguration;
-            $fileConfiguration->setOwnerId($opportunityNew->id);
-            $fileConfiguration->save(true);
+        // Clonar campos e criar mapeamento de fieldName
+        $clonedFields = [];
+        $conditionalFieldsToUpdate = [];
+        
+        foreach ($opportunityCurrent->getRegistrationFieldConfigurations() as $oldFieldConfiguration) {
+            $oldFieldName = $oldFieldConfiguration->getFieldName();
+            
+            // Guardar conditional_field original antes de clonar
+            $originalConditionalField = $oldFieldConfiguration->conditionalField;
+            
+            $newFieldConfiguration = clone $oldFieldConfiguration;
+            $newFieldConfiguration->setOwnerId($opportunityNew->id);
+
+            // aplicar step correto
+            if (isset($stepMap[$oldFieldConfiguration->step->id])) {
+                $newFieldConfiguration->setStep($stepMap[$oldFieldConfiguration->step->id]);
+            }
+
+            // Limpar conditional_field temporariamente para evitar salvar com valor antigo
+            $newFieldConfiguration->conditionalField = null;
+
+            $newFieldConfiguration->save(true);
+            
+            // mapear fieldName antigo para novo
+            $newFieldName = $newFieldConfiguration->getFieldName();
+            $fieldNameMap[$oldFieldName] = $newFieldName;
+            
+            // guardar referência para atualização posterior
+            $clonedFields[] = $newFieldConfiguration;
+            
+            // guardar conditional_field original para atualizar depois
+            if (!empty($originalConditionalField)) {
+                $conditionalFieldsToUpdate[] = [
+                    'field' => $newFieldConfiguration,
+                    'oldConditionalField' => $originalConditionalField
+                ];
+            }
+        }
+
+        // Atualizar conditional_field dos campos clonados usando o mapeamento
+        foreach ($conditionalFieldsToUpdate as $item) {
+            $oldConditionalFieldName = $item['oldConditionalField'];
+            
+            // Se o campo referenciado foi clonado, atualizar a referência
+            if (isset($fieldNameMap[$oldConditionalFieldName])) {
+                $item['field']->conditionalField = $fieldNameMap[$oldConditionalFieldName];
+                $item['field']->save(true);
+            }
+        }
+
+        // Clonar arquivos e atualizar conditional_field
+        $conditionalFilesToUpdate = [];
+        
+        foreach ($opportunityCurrent->getRegistrationFileConfigurations() as $oldFileConfiguration) {
+            // Guardar conditional_field original antes de clonar
+            $originalConditionalField = $oldFileConfiguration->conditionalField;
+            
+            $newFileConfiguration = clone $oldFileConfiguration;
+            $newFileConfiguration->setOwnerId($opportunityNew->id);
+
+            // aplicar step correto
+            if (isset($stepMap[$oldFileConfiguration->step->id])) {
+                $newFileConfiguration->setStep($stepMap[$oldFileConfiguration->step->id]);
+            }
+
+            // Limpar conditional_field temporariamente para evitar salvar com valor antigo
+            $newFileConfiguration->conditionalField = null;
+
+            $newFileConfiguration->save(true);
+            
+            // guardar conditional_field original para atualizar depois
+            if (!empty($originalConditionalField)) {
+                $conditionalFilesToUpdate[] = [
+                    'file' => $newFileConfiguration,
+                    'oldConditionalField' => $originalConditionalField
+                ];
+            }
+        }
+
+        // Atualizar conditional_field dos arquivos clonados usando o mapeamento
+        foreach ($conditionalFilesToUpdate as $item) {
+            $oldConditionalFieldName = $item['oldConditionalField'];
+            
+            // Se o campo referenciado foi clonado, atualizar a referência
+            if (isset($fieldNameMap[$oldConditionalFieldName])) {
+                $item['file']->conditionalField = $fieldNameMap[$oldConditionalFieldName];
+                $item['file']->save(true);
+            }
         }
     }
 
