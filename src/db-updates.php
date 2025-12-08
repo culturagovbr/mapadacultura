@@ -2921,6 +2921,50 @@ $$
                 AND emc.type = 'qualification'
                 AND r.consolidated_result IN ('Habilitado', 'Inabilitado')
         ");
-    }
-    
+    },
+
+    'recreate trigger to insert opportunity data to new model' => function () {
+        __exec("CREATE OR REPLACE FUNCTION fn_propagate_opportunity_insert()
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                IF NEW.parent_id IS NOT NULL THEN
+                    NEW.registration_ranges := (
+                        SELECT registration_ranges
+                        FROM opportunity
+                        WHERE id = NEW.parent_id
+                    );
+
+                    NEW.registration_categories := (
+                        SELECT registration_categories
+                        FROM opportunity
+                        WHERE id = NEW.parent_id
+                    );
+
+                    NEW.registration_proponent_types := (
+                        SELECT registration_proponent_types
+                        FROM opportunity
+                        WHERE id = NEW.parent_id
+                    );
+                END IF;
+
+                RETURN NEW;
+            END;
+            $$;
+        ");
+    },
+
+    "Removendo os campos e anexos de formulário erroneamente duplicados pela 'Salvar Como Modelo'" => function() {
+        __try("DELETE FROM registration_field_configuration rfc
+                     USING registration_step rs
+                     WHERE rs.id = rfc.step_id
+                       AND rs.opportunity_id != rfc.opportunity_id;");
+
+        __try("DELETE FROM registration_file_configuration rfc
+                     USING registration_step rs
+                     WHERE rs.id = rfc.step_id
+                       AND rs.opportunity_id != rfc.opportunity_id;");
+    },
+
 ] + $updates ;   
