@@ -24,6 +24,10 @@ services:
       - ./scripts:/var/www/scripts
       - ./var:/var/www/var
 
+      # timezone
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
       - ./docker-data/assets:/var/www/html/assets
       - ./docker-data/public-files:/var/www/html/files
       - ./docker-data/private-files:/var/www/var/private-files
