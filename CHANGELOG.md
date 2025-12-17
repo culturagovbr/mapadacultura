@@ -16,6 +16,13 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Possibilidade de limitar o número de avaliadores de uma comissão qua cada inscrição receberá
   - Comissão de voto de minerva, que recebe inscrições que tenham divergência entre diferentes comissões de avaliação
 - Etapas em formulários de inscrição
+- Exportador / Importador de oportunidades
+- Lista de entidades seladas na single dos selos
+- Opção para habilitar página de certificado na configuração de selo
+- Aba de eventos na single de espaços com listagem de eventos programados no local
+- Aba de eventos na single de projetos com listagem de eventos vinculados e suas ocorrências
+- Fediverso como rede social nos metadados das entidades
+- Adiciona restrição de tipos de arquivo permitidos em campos anexo do formulário
 
 ### Melhorias
 - Redireciona usuario para o perfil quando o mesmo esta em rascunho ou com dados obrigatórios não preechidos
