@@ -3,14 +3,6 @@
 use MapasCulturais\i;
 use MapasCulturais\Entities\Registration;
 
-$registrations = Registration::getStatusesNames();
-
-foreach($registrations as $status => $status_name){
-    if(in_array($status,[0,1,2,3,8,10])){
-        $data["registrationStatusDict"][] = ["label" => $status_name, "value" => $status];
-    }
-}
-
 $phase = $this->controller->requestedEntity;
 
 $data['isAffirmativePoliciesActive'] = $phase->isAffirmativePoliciesActive();
