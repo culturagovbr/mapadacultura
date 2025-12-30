@@ -11,33 +11,6 @@ foreach($registrations as $status => $status_name){
     }
 }
 
-$data['evaluationStatusDict'] = [
-    'simple' => [
-        '0'  => i::__('Não avaliada'),
-        '2'  => i::__('Inválida'),
-        '3'  => i::__('Não selecionada'),
-        '8'  => i::__('Suplente'),
-        '10' => i::__('Selecionada')
-    ],
-    'documentary' => [
-        '0'  => i::__('Não avaliada'),
-        '1' => i::__('Válida'),
-        '-1' => i::__('Inválida'),
-    ],
-    'qualification' => [
-        '0'  => i::__('Não avaliada'),
-        'Habilitado' => i::__('Habilitado'),
-        'Inabilitado' => i::__('Inabilitado'),
-    ],
-    'continuous' => [
-        '0'  => i::__('Não avaliada'),
-        '2'  => i::__('Inválida'),
-        '3'  => i::__('Não selecionada'),
-        '8'  => i::__('Suplente'),
-        '10' => i::__('Selecionada')
-    ]
-];
-
 $phase = $this->controller->requestedEntity;
 
 $data['isAffirmativePoliciesActive'] = $phase->isAffirmativePoliciesActive();
@@ -227,13 +200,20 @@ $data['evaluationStatusDict'] = [
     ],
     'documentary' => [
         '0'  => i::__('Não avaliada'),
-        '1'  => i::__('Válida'),
+        '1' => i::__('Válida'),
         '-1' => i::__('Inválida'),
     ],
     'qualification' => [
         '0'  => i::__('Não avaliada'),
         'Habilitado' => i::__('Habilitado'),
         'Inabilitado' => i::__('Inabilitado'),
+    ],
+    'continuous' => [
+        '0'  => i::__('Não avaliada'),
+        '2'  => i::__('Inválida'),
+        '3'  => i::__('Não selecionada'),
+        '8'  => i::__('Suplente'),
+        '10' => i::__('Selecionada')
     ]
 ];
 
