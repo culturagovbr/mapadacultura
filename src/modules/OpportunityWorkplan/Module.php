@@ -395,6 +395,12 @@ class Module extends \MapasCulturais\Module{
         ]);
         $app->registerMetadata($typeDelivery, Delivery::class);
 
+        $typeDeliveryOther = new Metadata('typeDeliveryOther', [
+            'label' => \MapasCulturais\i::__('Especificar tipo de entrega'),
+            'type' => 'string',
+        ]);
+        $app->registerMetadata($typeDeliveryOther, Delivery::class);
+
         $segmentDelivery = new Metadata('segmentDelivery', [
             'label' => \MapasCulturais\i::__('Segmento artístico cultural da entrega'),
             'type' => 'select',
