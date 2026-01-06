@@ -60,6 +60,12 @@ $this->import('
                 {{ goal.culturalMakingStage }}
             </div>
 
+            <!-- Especificar etapa do fazer cultural (condicional) -->
+            <div v-if="goal.culturalMakingStage === 'Outra (especificar)' && goal.culturalMakingStageOther" class="field">
+                <label><?= i::esc_attr__('Especificar etapa do fazer cultural') ?></label>
+                {{ goal.culturalMakingStageOther }}
+            </div>
+
             <div v-for="(delivery, index_) in goal.deliveries" :key="delivery.id" class="registration-details-workplan__goals__deliveries">
                 <div class="registration-details-workplan__header-deliveries">
                     <h4 class="registration-details-workplan__goals-title">

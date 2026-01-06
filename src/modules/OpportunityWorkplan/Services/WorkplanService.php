@@ -42,6 +42,7 @@ class WorkplanService
                 $goal->title = $g['title'] ?? null;
                 $goal->description = $g['description'] ?? null;
                 $goal->culturalMakingStage = $g['culturalMakingStage'] ?? null;
+                $goal->culturalMakingStageOther = $g['culturalMakingStageOther'] ?? null;
                 $goal->amount = $g['amount'] ?? null;
                 $goal->workplan = $workplan;
                 $goal->save(true);

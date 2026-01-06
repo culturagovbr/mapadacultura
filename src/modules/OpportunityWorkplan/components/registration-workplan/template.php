@@ -129,10 +129,16 @@ $this->import('
                     <!-- Etapa do fazer cultural -->
                     <div v-if="opportunity.workplan_metaInformTheStageOfCulturalMaking" class="field">
                         <label><?= i::esc_attr__('Etapa do fazer cultural') ?><span class="required">obrigatório*</span></label>
-                        <select v-model="goal.culturalMakingStage">
+                        <select v-model="goal.culturalMakingStage" @change="handleCulturalMakingStageChange(goal)">
                             <option value=""><?= i::esc_attr__('Selecione') ?></option>
-                            <option v-for="n in workplanFields.goal.culturalMakingStage.options" :key="n" :value="n">{{ n }}</option>
+                            <option v-for="n in workplanFields.goal?.culturalMakingStage?.options" :key="n" :value="n">{{ n }}</option>
                         </select>
+                    </div>
+
+                    <!-- Especificar etapa do fazer cultural (condicional) -->
+                    <div v-if="opportunity.workplan_metaInformTheStageOfCulturalMaking && goal.culturalMakingStage === 'Outra (especificar)'" class="field">
+                        <label><?= i::esc_attr__('Especificar etapa do fazer cultural') ?><span class="required">obrigatório*</span></label>
+                        <input v-model="goal.culturalMakingStageOther" type="text" placeholder="<?= i::esc_attr__('Digite a etapa do fazer cultural') ?>">
                     </div>
 
                     <!-- Valor da meta -->

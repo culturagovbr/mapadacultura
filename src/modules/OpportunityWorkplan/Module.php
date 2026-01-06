@@ -77,8 +77,8 @@ class Module extends \MapasCulturais\Module{
             
             $app->hook('mapas.printJsObject:before', function() {
                 $this->jsObject['EntitiesDescription']['workplan'] = Workplan::getPropertiesMetadata();
-                $this->jsObject['EntitiesDescription']['goal'] = Goal::getPropertiesMetadata();
-                $this->jsObject['EntitiesDescription']['delivery'] = Delivery::getPropertiesMetadata();
+                $this->jsObject['EntitiesDescription']['workplan']['goal'] = Goal::getPropertiesMetadata();
+                $this->jsObject['EntitiesDescription']['workplan']['goal']['delivery'] = Delivery::getPropertiesMetadata();
             });
         });
     }
@@ -283,6 +283,12 @@ class Module extends \MapasCulturais\Module{
             ),
         ]);
         $app->registerMetadata($culturalMakingStage, Goal::class);
+
+        $culturalMakingStageOther = new Metadata('culturalMakingStageOther', [
+            'label' => \MapasCulturais\i::__('Especificar etapa do fazer cultural'),
+            'type' => 'string',
+        ]);
+        $app->registerMetadata($culturalMakingStageOther, Goal::class);
 
 
         // metadados pauta temática
