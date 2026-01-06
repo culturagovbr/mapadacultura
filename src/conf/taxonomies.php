@@ -243,6 +243,7 @@ return array(
             i::__('Escola de Samba'),
             i::__('Escultura (Artes Visuais)'),
             i::__('Escultura (Artesanato)'),
+            i::__('Espaços e Equipamentos Culturais'),
             i::__('Espetáculo de Circo'),
             i::__('Fábula'),
             i::__('Fandango'),
