@@ -83,4 +83,10 @@ app.component('search-list', {
             return 'createTimestamp DESC';
         },
     },
+
+    methods: {
+        getTypeName(entity) {
+            return Utils.getEntityTypeName(entity, this.type);
+        },
+    },
 });

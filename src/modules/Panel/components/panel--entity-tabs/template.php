@@ -98,7 +98,7 @@ $this->applyComponentHook('.sortOptions', [&$tabs]);
                         <template #subtitle="{ entity }">
                             <slot name="card-content" :entity="entity">
                                 <span v-if="entity.type">
-                                    <?=i::__('Tipo: ')?> <strong>{{ entity.type.name }}</strong>
+                                    <?=i::__('Tipo: ')?> <strong>{{ getTypeName(entity) }}</strong>
                                 </span>
                             </slot>
                         </template>

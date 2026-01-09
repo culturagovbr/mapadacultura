@@ -23,6 +23,10 @@ app.component('mc-map-card', {
         areas() {
             return (Array.isArray(this.entity.terms.area) ? this.entity.terms.area.join(", ") : false);
         },
+
+        type() {
+            return Utils.getEntityTypeName(this.entity, this.entity.__objectType);
+        }
     },
     
     methods: {},

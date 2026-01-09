@@ -304,5 +304,37 @@ globalThis.Utils = {
                 options.secure ? '; secure' : ''
             ].join(''));
         }
+    }, 
+
+    getEntityTypeName(entity, entityType = null) {
+        if (!entity || !entity.type) {
+            return '';
+        }
+        
+        // Se não especificar entityType, tenta inferir de entity.__objectType
+        entityType = entityType || entity.__objectType;
+        
+        // Configuração do tipo "Outros" para espaços
+        if (entityType === 'space') {
+            const otherTypeId = $MAPAS?.config?.entityTypes?.space?.otherTypeId ?? 2040;
+            if (entity.type?.id === otherTypeId && entity.informarQualOutroTipoDeEspaco) {
+                return 'Outros (' + entity.informarQualOutroTipoDeEspaco + ')';
+            }
+        }
+        
+        return entity.type?.name || '';
+    },
+
+    /**
+     * Obtém o ID do tipo "Outros" para espaços
+     * @param {boolean} hasStringType - Se true, retorna o ID como string
+     * @returns {number|string} O ID do tipo "Outros"
+     */
+    getSpaceOtherTypeId(hasStringType = false) {
+        const otherTypeId = $MAPAS?.config?.entityTypes?.space?.otherTypeId ?? 2040;
+        if (hasStringType) {
+            return otherTypeId.toString();
+        }
+        return otherTypeId;
     }
 }
