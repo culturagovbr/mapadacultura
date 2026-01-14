@@ -25,3 +25,6 @@
 [submodule "src/themes/Pnab"]
 	path = src/themes/Pnab
 	url = https://github.com/culturagovbr/theme-Pnab
+[submodule "src/plugins/Accessibility"]
+	path = src/plugins/Accessibility
+	url = git@github.com:culturagovbr/plugin-Accessibility.git
