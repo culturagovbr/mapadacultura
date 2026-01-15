@@ -7,6 +7,7 @@ return [
         'RecreatePCacheOnLogin',
         'SpamDetector',
         'MapasBlame',
+        'AldirBlanc',
         'Metabase' => [
             'namespace' => 'Metabase',
             'config' => [
