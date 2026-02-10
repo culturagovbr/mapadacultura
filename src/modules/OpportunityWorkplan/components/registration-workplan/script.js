@@ -97,6 +97,7 @@ app.component('registration-workplan', {
             entityGoal.title = null;
             entityGoal.description = null;
             entityGoal.culturalMakingStage = null;
+            entityGoal.culturalMakingStageOther = null;
             entityGoal.deliveries = [];
 
         
@@ -135,7 +136,8 @@ app.component('registration-workplan', {
             entityDelivery.id = null;
             entityDelivery.name = null;
             entityDelivery.description = null;
-            entityDelivery.typeDelivery = null
+            entityDelivery.typeDelivery = null;
+            entityDelivery.typeDeliveryOther = null;
             entityDelivery.segmentDelivery = null;
             entityDelivery.expectedNumberPeople = null
             entityDelivery.generaterRevenue = null;
@@ -185,6 +187,7 @@ app.component('registration-workplan', {
                 if (!goal.title) emptyFields.push(`Título da ${this.getGoalLabelDefault}`);
                 if (!goal.description) emptyFields.push("Descrição");
                 if (this.opportunity.workplan_metaInformTheStageOfCulturalMaking && !goal.culturalMakingStage) emptyFields.push("Etapa do fazer cultural");
+                if (this.opportunity.workplan_metaInformTheStageOfCulturalMaking && goal.culturalMakingStage === 'Outra (especificar)' && !goal.culturalMakingStageOther) emptyFields.push("Especificar etapa do fazer cultural");
                 if (this.opportunity.workplan_deliveryReportTheDeliveriesLinkedToTheGoals && goal.deliveries.length === 0) emptyFields.push(`${this.getDeliveryLabelDefault}`);
 
                 const validateDelivery = this.validateDelivery(goal);
@@ -223,6 +226,7 @@ app.component('registration-workplan', {
                 if ('name' in delivery && !delivery.name) emptyFields.push(`Nome da ${this.getDeliveryLabelDefault}`);
                 if ('description' in delivery && !delivery.description) emptyFields.push("Descrição");
                 if ('typeDelivery' in delivery && !delivery.typeDelivery) emptyFields.push(`Tipo de ${this.getDeliveryLabelDefault}`);
+                if ('typeDelivery' in delivery && delivery.typeDelivery === 'Outros (especificar)' && !delivery.typeDeliveryOther) emptyFields.push(`Especificar tipo de ${this.getDeliveryLabelDefault}`);
                 if (this.opportunity.workplan_registrationInformCulturalArtisticSegment && 'segmentDelivery' in delivery && !delivery.segmentDelivery) emptyFields.push(`Segmento artístico-cultural da ${this.getDeliveryLabelDefault}`);
                 if (this.opportunity.workplan_registrationReportTheNumberOfParticipants && 'expectedNumberPeople' in delivery && !delivery.expectedNumberPeople) emptyFields.push("Número previsto de pessoas");
                 if (this.opportunity.workplan_registrationReportExpectedRenevue && 'generaterRevenue' in delivery && !delivery.generaterRevenue) emptyFields.push(`A ${this.getDeliveryLabelDefault} irá gerar receita?`);
@@ -262,6 +266,18 @@ app.component('registration-workplan', {
         },
         range(start, end) {
             return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+        },
+        handleCulturalMakingStageChange(goal) {
+            // Limpa o campo de especificação se outra opção for selecionada
+            if (goal.culturalMakingStage !== 'Outra (especificar)') {
+                goal.culturalMakingStageOther = null;
+            }
+        },
+        handleTypeDeliveryChange(delivery) {
+            // Limpa o campo de especificação se outra opção for selecionada
+            if (delivery.typeDelivery !== 'Outros (especificar)') {
+                delivery.typeDeliveryOther = null;
+            }
         },
         updateEnableButtonNewGoal() {
             this.enableButtonNewGoal = this.enableNewGoal(this.workplan);

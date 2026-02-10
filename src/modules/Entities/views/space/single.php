@@ -44,7 +44,9 @@ $this->breadcrumb = [
             </dl> 
             <dl v-if="entity.type">
                 <dt><?= i::__('Tipo') ?></dt>
-                <dd :class="[entity.__objectType+'__color', 'type']"> {{entity.type.name}} </dd>
+                <dd :class="[entity.__objectType+'__color', 'type']">
+                    {{entity.type.id === spaceOtherTypeId ? 'Outros (' + entity.informarQualOutroTipoDeEspaco + ')' : entity.type.name}}
+                </dd>
             </dl>
             <dl v-if="entity.parent">
                 <dt><?= i::__('Espaço integrante de') ?></dt>
