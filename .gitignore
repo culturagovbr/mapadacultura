@@ -12,3 +12,7 @@ src/themes/BaseV1/assets/css/main.css
 src/themes/BaseV1/assets/css/main.css.map
 **/.env
 !/dev/.env
+# Dicionário de dados - permitir apenas .zip e .md
+documentation/dicionario-de-dados/*
+!documentation/dicionario-de-dados/*.zip
+!documentation/dicionario-de-dados/*.md
