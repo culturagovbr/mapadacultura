@@ -12,7 +12,7 @@ $this->bodyClasses[] = 'layout-entity';
 ?>
 <?php $this->part('header', $render_data) ?>
 <?php $this->part('main-header', $render_data) ?>
-<mc-entity #default="{entity}">
+<mc-entity #default="{entity, spaceOtherTypeId}">
 <?= $TEMPLATE_CONTENT ?>
 </mc-entity>
 <?php $this->part('main-footer', $render_data) ?>

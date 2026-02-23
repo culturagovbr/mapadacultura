@@ -101,6 +101,10 @@ app.component('panel--entity-tabs', {
                 list.push(entity);
                 entity.$LISTS.push(list);
             }
-        }
+        },
+
+        getTypeName(entity) {
+            return Utils.getEntityTypeName(entity, this.type);
+        },
     },
 });

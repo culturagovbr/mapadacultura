@@ -278,6 +278,13 @@ app.component('entity-table', {
             let spreadsheetQuery =  Object.assign({}, this.query);
 
             spreadsheetQuery['@select'] = this.visibleColumns.map(column => column.slug).join(',');
+
+            // Adiciona o campo 'informarQualOutroTipoDeEspaco' para espaços
+            if (this.type === 'space' && spreadsheetQuery['@select'].includes('type')) {
+                // remonta a string adicionando o informarQualOutroTipoDeEspaco, logo após o type.
+                spreadsheetQuery['@select'] = spreadsheetQuery['@select'].replace('type', 'type,informarQualOutroTipoDeEspaco');
+            }
+
             spreadsheetQuery['@order'] = this.entitiesOrder;
 
             spreadsheetQuery = Object.fromEntries(
@@ -545,6 +552,10 @@ app.component('entity-table', {
             if(prop == 'status') {
                 let type = this.type.charAt(0).toUpperCase() + this.type.slice(1);
                 val = this.fromToStatus[type]?.[val] || val;
+            }
+
+            if(obj.__objectType === 'space' && prop === 'type.name') {
+                return Utils.getEntityTypeName(obj, 'space');
             }
 
             return val;

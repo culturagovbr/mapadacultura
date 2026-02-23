@@ -26,5 +26,5 @@ $this->import('panel--entity-tabs panel--entity-card mc-icon create-space');
         </div>
     </header>
 
-    <panel--entity-tabs type="space"></panel--entity-tabs>
+    <panel--entity-tabs type="space" select="id,status,name,type,createTimestamp,terms,files.avatar,currentUserPermissions,isModel,isModelPublic,owner,informarQualOutroTipoDeEspaco"></panel--entity-tabs>
 </div>

@@ -66,7 +66,22 @@ $this->breadcrumb = [
                                     <div class="col-9 sm:col-12">
                                         <div class="grid-12">
                                             <entity-field :entity="entity" classes="col-12" label="Nome do espaço" prop="name"></entity-field>
-                                            <entity-field :entity="entity" classes="col-12" label="Tipo do espaço" prop="type"></entity-field>
+                                            
+                                            <!-- @change: Limpa o campo de especificação quando o tipo muda para algo diferente de "outro tipo" -->
+                                            <entity-field :entity="entity" classes="col-12" label="Tipo do espaço" prop="type" @change="
+                                                (
+                                                    () => { 
+                                                        const typeId = entity.type?.id ?? Number(entity.type);
+                                                        if (typeId !== spaceOtherTypeId) entity.informarQualOutroTipoDeEspaco = '';
+                                                    }
+                                                )()"
+                                            ></entity-field>
+                                            <!-- v-if: Mostra o campo de especificação apenas quando o tipo selecionado é "outro tipo" -->
+                                            <entity-field v-if="(entity.type?.id ?? Number(entity.type)) === spaceOtherTypeId" :entity="entity" classes="col-12" prop="informarQualOutroTipoDeEspaco">
+                                                <template #default>
+                                                    <?php i::_e('Especificar o tipo de espaço') ?><span class="required">*<?php i::_e('obrigatório') ?></span>
+                                                </template>
+                                            </entity-field>
                                         </div>
                                     </div>
                                     <?php $this->applyTemplateHook('entity-info','end') ?>

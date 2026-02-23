@@ -29,7 +29,7 @@ app.component('create-space', {
 
     computed: {
         areaErrors() {
-            return this.entity.__validationErrors['term-area'];
+            return this.entity?.__validationErrors?.['term-area'];
         },
         areaClasses() {
             return this.areaErrors ? 'field error' : 'field';
@@ -48,7 +48,46 @@ app.component('create-space', {
         },
     },
 
+    watch: {
+        // Monitora mudanças no campo 'type' e limpa o campo 'informarQualOutroTipoDeEspaco' 
+        // quando o tipo não for mais "Outros"
+        'entity.type': {
+            handler(newValue, oldValue) {
+                if (!this.entity) return;
+                
+                const otherTypeId = Utils.getSpaceOtherTypeId();
+                const newTypeId = this.getTypeId(newValue);
+                const oldTypeId = this.getTypeId(oldValue);
+                
+                // Se mudou de "Outros" para outro tipo, limpa o campo
+                if (oldTypeId === otherTypeId && newTypeId !== otherTypeId) {
+                    this.clearOutroTipoDeEspaco();
+                } 
+                // Se o tipo não é "Outros" mas o campo ainda tem valor, limpa também
+                else if (newTypeId !== otherTypeId && this.entity.informarQualOutroTipoDeEspaco) {
+                    this.clearOutroTipoDeEspaco();
+                }
+            },
+            immediate: false
+        }
+    },
+
     methods: {
+        /**
+         * Normaliza o valor do tipo para sempre retornar o ID como número
+         * @param {object|number|string} type - O tipo pode ser objeto {id: 2040}, número 2040 ou string "2040"
+         * @returns {number|null} O ID do tipo como número, ou null se não houver
+         */
+        getTypeId(type) {
+            if (!type) return null;
+            // Se for objeto, pega o id
+            if (typeof type === 'object' && type.id !== undefined) {
+                return Number(type.id);
+            }
+            // Se for número ou string, converte para número
+            return Number(type);
+        },
+
         iterationFields() {
             let skip = [
                 'createTimestamp',
@@ -100,6 +139,20 @@ app.component('create-space', {
         destroyEntity() {
             // para o conteúdo da modal não sumir antes dela fechar
             setTimeout(() => this.entity = null, 200);
+        },
+
+        /**
+         * Limpa o campo 'informarQualOutroTipoDeEspaco' e seus erros de validação
+         * quando o tipo do espaço não é mais "Outros" (2040)
+         */
+        clearOutroTipoDeEspaco() {
+            if (this.entity) {
+                this.entity.informarQualOutroTipoDeEspaco = '';
+                
+                if (this.entity.__validationErrors && this.entity.__validationErrors.informarQualOutroTipoDeEspaco) {
+                    delete this.entity.__validationErrors.informarQualOutroTipoDeEspaco;
+                }
+            }
         }
     },
 });

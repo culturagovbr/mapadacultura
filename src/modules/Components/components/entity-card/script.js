@@ -10,7 +10,9 @@ app.component('entity-card', {
     },
 
     data() {
-        return {}
+        return {
+            type: this.entity.__objectType
+        }
     },
 
     props: {
@@ -127,6 +129,10 @@ app.component('entity-card', {
                 return _slicedText.join(' ') + '...';
             }
             return text;
+        },
+
+        getTypeName(entity) {
+            return Utils.getEntityTypeName(entity, this.type);
         },
     },
 });

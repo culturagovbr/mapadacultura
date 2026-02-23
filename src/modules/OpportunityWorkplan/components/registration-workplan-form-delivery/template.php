@@ -48,6 +48,12 @@ $this->import('
             {{ delivery.typeDelivery }}
         </div>
 
+        <!-- Especificar tipo de entrega (condicional) -->
+        <div v-if="delivery.typeDelivery === 'Outros (especificar)' && delivery.typeDeliveryOther" class="field">
+            <label><?= i::__('Especificar tipo de entrega') ?></label>
+            {{ delivery.typeDeliveryOther }}
+        </div>
+
         <div v-if="delivery.segmentDelivery" class="field">
             <label><?= i::esc_attr__('Segmento artístico cultural') ?></label>
             {{ delivery.segmentDelivery }}

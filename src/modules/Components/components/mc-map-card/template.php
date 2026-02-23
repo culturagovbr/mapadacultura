@@ -23,7 +23,7 @@ $this->import('
     <div class="mc-map-card__content">
         <div v-if="entity.type" class="mc-map-card__content--info">
             <p class="info">
-                <?php i::_e('Tipo:') ?> <strong>{{entity.type.name}}</strong>
+                <?php i::_e('Tipo:') ?> <strong>{{type}}</strong>
             </p>
         </div>
 

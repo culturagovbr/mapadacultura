@@ -129,10 +129,16 @@ $this->import('
                     <!-- Etapa do fazer cultural -->
                     <div v-if="opportunity.workplan_metaInformTheStageOfCulturalMaking" class="field">
                         <label><?= i::esc_attr__('Etapa do fazer cultural') ?><span class="required">obrigatório*</span></label>
-                        <select v-model="goal.culturalMakingStage">
+                        <select v-model="goal.culturalMakingStage" @change="handleCulturalMakingStageChange(goal)">
                             <option value=""><?= i::esc_attr__('Selecione') ?></option>
-                            <option v-for="n in workplanFields.goal.culturalMakingStage.options" :key="n" :value="n">{{ n }}</option>
+                            <option v-for="n in workplanFields.goal?.culturalMakingStage?.options" :key="n" :value="n">{{ n }}</option>
                         </select>
+                    </div>
+
+                    <!-- Especificar etapa do fazer cultural (condicional) -->
+                    <div v-if="opportunity.workplan_metaInformTheStageOfCulturalMaking && goal.culturalMakingStage === 'Outra (especificar)'" class="field">
+                        <label><?= i::esc_attr__('Especificar etapa do fazer cultural') ?><span class="required">obrigatório*</span></label>
+                        <input v-model="goal.culturalMakingStageOther" type="text" placeholder="<?= i::esc_attr__('Digite a etapa do fazer cultural') ?>">
                     </div>
 
                     <!-- Valor da meta -->
@@ -171,10 +177,16 @@ $this->import('
                             <div class="field">
                                 <label>
                                     {{ `Tipo de ${getDeliveryLabelDefault}` }}<span class="required">obrigatório*</span></label>
-                                <select v-model="delivery.typeDelivery">
+                                <select v-model="delivery.typeDelivery" @change="handleTypeDeliveryChange(delivery)">
                                     <option value=""><?= i::esc_attr__('Selecione') ?></option>
                                     <option v-for="n in workplanFields.goal.delivery.typeDelivery.options" :key="n" :value="n">{{ n }}</option>
                                 </select>
+                            </div>
+
+                            <!-- Especificar tipo de entrega (condicional) -->
+                            <div v-if="delivery.typeDelivery === 'Outros (especificar)'" class="field">
+                                <label><?= i::esc_attr__('Especificar tipo de entrega') ?><span class="required">obrigatório*</span></label>
+                                <input v-model="delivery.typeDeliveryOther" type="text" placeholder="<?= i::esc_attr__('Digite o tipo de entrega') ?>">
                             </div>
 
                             <div v-if="opportunity.workplan_registrationInformCulturalArtisticSegment" class="field">

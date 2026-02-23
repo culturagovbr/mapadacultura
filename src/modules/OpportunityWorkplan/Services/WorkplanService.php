@@ -42,6 +42,7 @@ class WorkplanService
                 $goal->title = $g['title'] ?? null;
                 $goal->description = $g['description'] ?? null;
                 $goal->culturalMakingStage = $g['culturalMakingStage'] ?? null;
+                $goal->culturalMakingStageOther = $g['culturalMakingStageOther'] ?? null;
                 $goal->amount = $g['amount'] ?? null;
                 $goal->workplan = $workplan;
                 $goal->save(true);
@@ -57,6 +58,7 @@ class WorkplanService
                     $delivery->name = $d['name'] ?? null;
                     $delivery->description = $d['description'] ?? null;
                     $delivery->typeDelivery = $d['typeDelivery'] ?? null;
+                    $delivery->typeDeliveryOther = $d['typeDeliveryOther'] ?? null;
                     $delivery->segmentDelivery = $d['segmentDelivery'] ?? null;
                     $delivery->expectedNumberPeople = $d['expectedNumberPeople'] ?? null;
                     $delivery->generaterRevenue = $d['generaterRevenue'] ?? null;
