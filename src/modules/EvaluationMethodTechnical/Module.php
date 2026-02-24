@@ -610,8 +610,8 @@ class Module extends \MapasCulturais\EvaluationMethod {
                 $wait_list = $this->data['waitList'];
                 $invalidate_registrations = $this->data['invalidateRegistrations'];
 
-                $cutoff_score = $this->data['cutoffScore'];
-                $quantity_vacancies = $this->data['quantityVacancies'];
+                $cutoff_score = (float) $this->data['cutoffScore'];
+                $quantity_vacancies = (int) $this->data['quantityVacancies'];
                 $consider_quotas = $this->data['considerQuotas'];
 
                 $query_params['status'] = $statusIn;
@@ -619,6 +619,7 @@ class Module extends \MapasCulturais\EvaluationMethod {
                 // considerar cotas
                 if($consider_quotas) {
                     $query_params['@order'] = '@quota';
+                    $query_params['__enableQuota'] = true;
                 }
 
                 $query = new ApiQuery(Registration::class, $query_params);
@@ -672,7 +673,7 @@ class Module extends \MapasCulturais\EvaluationMethod {
                             $registration->skipSync = true;
                             $registration->__skipQueuingPCacheRecreation = true;
 
-                            $app->log->debug("{$count}/{$total} Alterando status da inscrição {$registration->number} para INVÁLIDO");
+                            $app->log->debug("{$count}/{$total} Alterando status da inscrição {$registration->number} para NÃO SELECIONADO");
                             $registration->setStatusToNotApproved();
                             $app->em->clear();
                         }
