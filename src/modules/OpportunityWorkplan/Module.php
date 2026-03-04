@@ -294,6 +294,18 @@ class Module extends \MapasCulturais\Module{
             'label' => i::__('Número máximo de entregas'),
         ]);
          
+        $this->registerOpportunityMetadata('workplan_deliveryInformDeliveryPeriod', [
+            'label' => i::__('Informar período de realização da atividade'),
+            'type' => 'boolean',
+            'default_value' => false
+        ]);
+
+        $this->registerOpportunityMetadata('workplan_deliveryRequireDeliveryPeriod', [
+            'label' => i::__('Período de realização obrigatório'),
+            'type' => 'boolean',
+            'default_value' => false
+        ]);
+
         $this->registerOpportunityMetadata('workplan_registrationReportTheNumberOfParticipants', [
             'label' => i::__('Informar a quantidade estimada de público'),
             'type' => 'boolean',
