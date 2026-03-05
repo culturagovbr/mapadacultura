@@ -113,7 +113,7 @@ class Module extends \MapasCulturais\Module{
 
                                     foreach ($simple_fields as $field) {
                                         if ($delivery->isMetadataRequired($field) && !$delivery->$field) {
-                                            $label = $this->getFieldLabel($field);
+                                            $label = self::getFieldLabel($field);
                                             $errors['delivery'][] = i::__("Campo '{$label}' obrigatório na entrega '{$delivery->name}'");
                                         }
                                     }
@@ -121,8 +121,8 @@ class Module extends \MapasCulturais\Module{
                                     // Campos JSON array (paidStaffByRole)
                                     $json_array_fields = ['paidStaffByRole', 'executedPaidStaffByRole'];
                                     foreach ($json_array_fields as $field) {
-                                        if ($delivery->isMetadataRequired($field) && !$this->validateJsonArrayField($delivery, $field)) {
-                                            $label = $this->getFieldLabel($field);
+                                        if ($delivery->isMetadataRequired($field) && !self::validateJsonArrayField($delivery, $field)) {
+                                            $label = self::getFieldLabel($field);
                                             $errors['delivery'][] = i::__("Campo '{$label}' obrigatório na entrega '{$delivery->name}'");
                                         }
                                     }
@@ -133,8 +133,8 @@ class Module extends \MapasCulturais\Module{
                                         'executedTeamCompositionGender', 'executedTeamCompositionRace'
                                     ];
                                     foreach ($json_object_fields as $field) {
-                                        if ($delivery->isMetadataRequired($field) && !$this->validateJsonObjectField($delivery, $field)) {
-                                            $label = $this->getFieldLabel($field);
+                                        if ($delivery->isMetadataRequired($field) && !self::validateJsonObjectField($delivery, $field)) {
+                                            $label = self::getFieldLabel($field);
                                             $errors['delivery'][] = i::__("Campo '{$label}' obrigatório na entrega '{$delivery->name}'");
                                         }
                                     }
@@ -147,8 +147,8 @@ class Module extends \MapasCulturais\Module{
                                         'priorityAudience'
                                     ];
                                     foreach ($multiselect_fields as $field) {
-                                        if ($delivery->isMetadataRequired($field) && !$this->validateMultiselectField($delivery, $field)) {
-                                            $label = $this->getFieldLabel($field);
+                                        if ($delivery->isMetadataRequired($field) && !self::validateMultiselectField($delivery, $field)) {
+                                            $label = self::getFieldLabel($field);
                                             $errors['delivery'][] = i::__("Campo '{$label}' obrigatório na entrega '{$delivery->name}'");
                                         }
                                     }
@@ -160,8 +160,8 @@ class Module extends \MapasCulturais\Module{
                                         'hasPressStrategy', 'hasInnovationAction'
                                     ];
                                     foreach ($select_fields as $field) {
-                                        if ($delivery->isMetadataRequired($field) && !$this->validateSelectField($delivery, $field)) {
-                                            $label = $this->getFieldLabel($field);
+                                        if ($delivery->isMetadataRequired($field) && !self::validateSelectField($delivery, $field)) {
+                                            $label = self::getFieldLabel($field);
                                             $errors['delivery'][] = i::__("Campo '{$label}' obrigatório na entrega '{$delivery->name}'");
                                         }
                                     }
@@ -1476,7 +1476,7 @@ class Module extends \MapasCulturais\Module{
     /**
      * Valida campo JSON do tipo array
      */
-    private function validateJsonArrayField($delivery, string $field): bool {
+    public static function validateJsonArrayField($delivery, string $field): bool {
         $value = $delivery->$field;
         if (!$value) return false;
 
@@ -1487,7 +1487,7 @@ class Module extends \MapasCulturais\Module{
     /**
      * Valida campo JSON do tipo objeto
      */
-    private function validateJsonObjectField($delivery, string $field): bool {
+    public static function validateJsonObjectField($delivery, string $field): bool {
         $value = $delivery->$field;
         if (!$value) return false;
 
@@ -1498,7 +1498,7 @@ class Module extends \MapasCulturais\Module{
     /**
      * Valida campo multiselect (array)
      */
-    private function validateMultiselectField($delivery, string $field): bool {
+    public static function validateMultiselectField($delivery, string $field): bool {
         $value = $delivery->$field;
         if (!$value) return false;
 
@@ -1509,7 +1509,7 @@ class Module extends \MapasCulturais\Module{
     /**
      * Valida campo select
      */
-    private function validateSelectField($delivery, string $field): bool {
+    public static function validateSelectField($delivery, string $field): bool {
         $value = $delivery->$field;
         return !is_null($value) && $value !== '';
     }
@@ -1517,7 +1517,7 @@ class Module extends \MapasCulturais\Module{
     /**
      * Retorna label amigável para campo
      */
-    private function getFieldLabel(string $field): string {
+    public static function getFieldLabel(string $field): string {
         $labels = [
             'artChainLink' => 'Principal elo das artes',
             'totalBudget' => 'Orçamento total',
