@@ -833,6 +833,12 @@ class Module extends \MapasCulturais\Module{
         $app->registerMetadata($culturalMakingStage, Goal::class);
     
         // metadados delivery
+        $monthInitialDelivery = new Metadata('monthInitial', ['label' => \MapasCulturais\i::__('Mês inicial')]);
+        $app->registerMetadata($monthInitialDelivery, Delivery::class);
+
+        $monthEndDelivery = new Metadata('monthEnd', ['label' => \MapasCulturais\i::__('Mês final')]);
+        $app->registerMetadata($monthEndDelivery, Delivery::class);
+
         $name = new Metadata('name', ['label' => \MapasCulturais\i::__('Nome da entrega')]);
         $app->registerMetadata($name, Delivery::class);
 
@@ -1327,6 +1333,13 @@ class Module extends \MapasCulturais\Module{
             ),
         ]);
         $app->registerMetadata($hasCommunityCoauthors, Delivery::class);
+
+        // Detalhamento de coautoria com comunidades (condicional)
+        $communityCoauthorsDetail = new Metadata('communityCoauthorsDetail', [
+            'label' => \MapasCulturais\i::__('Detalhamento de coautoria'),
+            'type' => 'text'
+        ]);
+        $app->registerMetadata($communityCoauthorsDetail, Delivery::class);
 
         // Estratégias Trans e Travestis (boolean)
         $hasTransInclusionStrategy = new Metadata('hasTransInclusionStrategy', [
