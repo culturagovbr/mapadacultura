@@ -9,4 +9,4 @@ $this->import('
 ');
 ?>
 <mc-loading :condition="loading"></mc-loading>
-<slot v-if="!loading" :entity="entity"></slot> 
+<slot v-if="!loading" v-bind="slotProps"></slot> 
