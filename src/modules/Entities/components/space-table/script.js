@@ -21,7 +21,7 @@ app.component('space-table', {
 
     data() {
         let query = {
-            '@select': 'name,type,shortDescription,files.avatar,seals,endereco,terms,acessibilidade',
+            '@select': 'name,type,shortDescription,files.avatar,seals,endereco,terms,acessibilidade,informarQualOutroTipoDeEspaco',
             '@order': 'createTimestamp DESC',
             '@limit': 20,
             '@page': 1,

@@ -1,3 +1,4 @@
+
 <?php
 
 /**
@@ -13,6 +14,7 @@ $this->import('
     mc-icon
     mc-confirm-button
     mc-currency-input
+    mc-multiselect
     mc-tag-list
 ');
 ?>
@@ -135,7 +137,8 @@ $this->import('
                     <!-- Título da meta -->
                     <div v-if="opportunity.workplan_goalInformTitle" class="field">
                         <label>
-                            {{ `Título da ${getGoalLabelDefault}` }}<span v-if="opportunity.workplan_goalRequireTitle" class="required">obrigatório*</span></label>
+                            {{ `Título da ${getGoalLabelDefault}` }}<span v-if="opportunity.workplan_goalRequireTitle" class="required">obrigatório*</span>
+                        </label>
                         <input v-model="goal.title" type="text">
                     </div>
 
@@ -148,15 +151,21 @@ $this->import('
                     <!-- Etapa do fazer cultural -->
                     <div v-if="opportunity.workplan_metaInformTheStageOfCulturalMaking" class="field">
                         <label>{{ `Etapa do fazer cultural da ${getGoalLabelDefault}` }}<span class="required">obrigatório*</span></label>
-                        <select v-model="goal.culturalMakingStage">
+                        <select v-model="goal.culturalMakingStage" @change="handleCulturalMakingStageChange(goal)">
                             <option value=""><?= i::esc_attr__('Selecione') ?></option>
                             <option v-for="n in workplanFields.goal?.culturalMakingStage?.options" :key="n" :value="n">{{ n }}</option>
                         </select>
                     </div>
 
+                    <!-- Especificar etapa do fazer cultural (condicional) -->
+                    <div v-if="opportunity.workplan_metaInformTheStageOfCulturalMaking && goal.culturalMakingStage === 'Outra (especificar)'" class="field">
+                        <label><?= i::esc_attr__('Especificar etapa do fazer cultural') ?><span class="required">obrigatório*</span></label>
+                        <input v-model="goal.culturalMakingStageOther" type="text" placeholder="<?= i::esc_attr__('Digite a etapa do fazer cultural') ?>">
+                    </div>
+
                     <!-- Valor da meta -->
                     <div id="container_deliveries">
-                        <div v-for="(delivery, index_) in goal.deliveries" :key="delivery.id" class="registration-workplan__goals__deliveries">
+                        <div v-for="(delivery, index_) in goal.deliveries" :key="delivery.id != null && delivery.id !== '' ? delivery.id : 'delivery-' + index_" class="registration-workplan__goals__deliveries">
                             <div class="registration-workplan__header-deliveries">
                                 <h4 class="registration-workplan__goals-title">{{ delivery.name || (getDeliveryLabelDefault + ' ' + (index_ + 1)) }}</h4>
                                 <div class="registration-workplan__delivery-actions">
@@ -200,11 +209,17 @@ $this->import('
 
                                 <div class="field">
                                     <label>
-                                        {{ `Tipo de ${getDeliveryLabelDefault}` }}<span class="required">obrigatório*</span></label>
-                                    <select v-model="delivery.typeDelivery">
+                                        {{ `Tipo de ${getDeliveryLabelDefault}` }}<span class="required">obrigatório*</span>
+                                    </label>
+                                    <select v-model="delivery.typeDelivery" @change="handleTypeDeliveryChange(delivery)">
                                         <option value=""><?= i::esc_attr__('Selecione') ?></option>
                                         <option v-for="n in workplanFields.goal.delivery.typeDelivery.options" :key="n" :value="n">{{ n }}</option>
                                     </select>
+                                </div>
+
+                                <div v-if="delivery.typeDelivery === 'Outros (especificar)'" class="field">
+                                    <label><?= i::esc_attr__('Especificar tipo de entrega') ?><span class="required">obrigatório*</span></label>
+                                    <input v-model="delivery.typeDeliveryOther" type="text" placeholder="<?= i::esc_attr__('Digite o tipo de entrega') ?>">
                                 </div>
 
                                 <div v-if="opportunity.workplan_registrationInformCulturalArtisticSegment" class="field">
@@ -224,14 +239,14 @@ $this->import('
                                             <label>{{ `Mês inicial da ${getDeliveryLabelDefault}` }}<span v-if="opportunity.workplan_deliveryRequireDeliveryPeriod" class="required">obrigatório*</span></label>
                                             <select v-model="delivery.monthInitial">
                                                 <option value=""><?= i::esc_attr__('Selecione') ?></option>
-                                                <option v-for="n in range(parseInt(goal.monthInitial), parseInt(goal.monthEnd))" :key="n" :value="n">{{ n }}</option>
+                                                <option v-for="n in range(parseInt(goal.monthInitial) || 1, parseInt(goal.monthEnd) || parseInt(goal.monthInitial) || 1)" :key="n" :value="n">{{ n }}</option>
                                             </select>
                                         </div>
                                         <div class="field">
                                             <label>{{ `Mês final da ${getDeliveryLabelDefault}` }}<span v-if="opportunity.workplan_deliveryRequireDeliveryPeriod" class="required">obrigatório*</span></label>
                                             <select v-model="delivery.monthEnd">
                                                 <option value=""><?= i::esc_attr__('Selecione') ?></option>
-                                                <option v-for="n in range(parseInt(delivery.monthInitial || goal.monthInitial), parseInt(goal.monthEnd))" :key="n" :value="n">{{ n }}</option>
+                                                <option v-for="n in range(parseInt(delivery.monthInitial || goal.monthInitial) || 1, parseInt(goal.monthEnd) || parseInt(delivery.monthInitial || goal.monthInitial) || 1)" :key="n" :value="n">{{ n }}</option>
                                             </select>
                                         </div>
                                     </div>
@@ -241,18 +256,19 @@ $this->import('
                                     <label>{{ `Qual a previsão de público da ${getDeliveryLabelDefault}?` }}<span v-if="opportunity.workplan_deliveryRequireExpectedNumberPeople" class="required">obrigatório*</span></label>
                                     <input class="field__limits" v-model="delivery.expectedNumberPeople" min="0" type="number">
                                 </div>
-                            </div>
-                            <div v-if="opportunity.workplan_deliveryInformArtChainLink" class="field">
-                                <label>{{ `Principal elo das artes acionado pela ${getDeliveryLabelDefault}` }}<span v-if="opportunity.workplan_deliveryRequireArtChainLink" class="required">obrigatório*</span></label>
-                                <select v-model="delivery.artChainLink">
-                                    <option value=""><?= i::esc_attr__('Selecione') ?></option>
-                                    <option v-for="n in workplanFields.goal.delivery.artChainLink.options" :key="n" :value="n">{{ n }}</option>
-                                </select>
-                            </div>
 
-                            <div v-if="opportunity.workplan_deliveryInformTotalBudget" class="field">
-                                <label>{{ `Qual o orçamento total da ${getDeliveryLabelDefault}?` }}<span v-if="opportunity.workplan_deliveryRequireTotalBudget" class="required">obrigatório*</span></label>
-                                <mc-currency-input v-model="delivery.totalBudget"></mc-currency-input>
+                                <div v-if="opportunity.workplan_deliveryInformArtChainLink" class="field">
+                                    <label>{{ `Principal elo das artes acionado pela ${getDeliveryLabelDefault}` }}<span v-if="opportunity.workplan_deliveryRequireArtChainLink" class="required">obrigatório*</span></label>
+                                    <select v-model="delivery.artChainLink">
+                                        <option value=""><?= i::esc_attr__('Selecione') ?></option>
+                                        <option v-for="n in workplanFields.goal.delivery.artChainLink.options" :key="n" :value="n">{{ n }}</option>
+                                    </select>
+                                </div>
+
+                                <div v-if="opportunity.workplan_deliveryInformTotalBudget" class="field">
+                                    <label>{{ `Qual o orçamento total da ${getDeliveryLabelDefault}?` }}<span v-if="opportunity.workplan_deliveryRequireTotalBudget" class="required">obrigatório*</span></label>
+                                    <mc-currency-input v-model="delivery.totalBudget"></mc-currency-input>
+                                </div>
                             </div>
 
                             <div v-if="opportunity.workplan_deliveryInformNumberOfCities" class="field">
