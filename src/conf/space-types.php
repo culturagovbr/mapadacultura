@@ -75,6 +75,24 @@ ordenaSubcategorias($items);
 
 return array(
     'metadata' => array(
+        'informarQualOutroTipoDeEspaco' => array(
+            'label' => \MapasCulturais\i::__('Especificar o tipo de espaço'),
+            'type' => 'string',
+            'validations' => array(),
+            'should_validate' => function($entity, $value) {
+                // Campo é obrigatório apenas quando o tipo do espaço é "Outros" (2040)
+                $type_id = is_object($entity->type) && isset($entity->type->id)
+                    ? $entity->type->id
+                    : (int)($entity->type ?? 0);
+                
+                if ($type_id === 2040 && (empty($value) || trim((string)$value) === '')) {
+                    return \MapasCulturais\i::__('O campo especificar o tipo de espaço é obrigatório.');
+                }
+                
+                return false;
+            },
+            'available_for_opportunities' => true
+        ),
         'emailPublico' => array(
             'label' => \MapasCulturais\i::__('Email Público'),
             'validations' => array(
