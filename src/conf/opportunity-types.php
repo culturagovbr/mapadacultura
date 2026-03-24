@@ -218,6 +218,41 @@ return array(
                 'unserialize' => function($value) { return json_decode((string) $value); }
         ),
 
+        'segmento' => array(
+            'label' => \MapasCulturais\i::__('Segmento artistico-cultural'),
+            'type' => 'multiselect',
+            'options' => array(
+                \MapasCulturais\i::__('Acervos'),
+                \MapasCulturais\i::__('Arquivos'),
+                \MapasCulturais\i::__('Artes Visuais'),
+                \MapasCulturais\i::__('Artesanato'),
+                \MapasCulturais\i::__('Audiovisual'),
+                \MapasCulturais\i::__('Capoeira'),
+                \MapasCulturais\i::__('Circo'),
+                \MapasCulturais\i::__('Cultura de Matriz Africana'),
+                \MapasCulturais\i::__('Cultura dos Povos Originários'),
+                \MapasCulturais\i::__('Culturas Tradicionais e Populares'),
+                \MapasCulturais\i::__('Dança'),
+                \MapasCulturais\i::__('Design'),
+                \MapasCulturais\i::__('Edição e produção editorial'),
+                \MapasCulturais\i::__('Festas e Celebrações'),
+                \MapasCulturais\i::__('Hip Hop'),
+                \MapasCulturais\i::__('Jogos eletrônicos'),
+                \MapasCulturais\i::__('Literatura'),
+                \MapasCulturais\i::__('Mediação e formação de leitores'),
+                \MapasCulturais\i::__('Moda'),
+                \MapasCulturais\i::__('Museu'),
+                \MapasCulturais\i::__('Música'),
+                \MapasCulturais\i::__('Patrimônio Arqueológico'),
+                \MapasCulturais\i::__('Patrimônio Cultural Material'),
+                \MapasCulturais\i::__('Patrimônio Cultural Imaterial'),
+                \MapasCulturais\i::__('Patrimônio Natural'),
+                \MapasCulturais\i::__('Performance'),
+                \MapasCulturais\i::__('Teatro'),
+                \MapasCulturais\i::__('Outros'),
+            ),
+        ),
+
         /** @TODO: colocar isso na entidade Opportunity (issue: #1273) **/
         'projectName' => array(
             'label' => \MapasCulturais\i::__('Nome do Projeto'),
