@@ -414,6 +414,7 @@ return array(
                 'Gay' => \MapasCulturais\i::__('Gay'),
                 'Heterossexual' => \MapasCulturais\i::__('Heterossexual'),
                 'Bissexual' => \MapasCulturais\i::__('Bissexual'),
+                'Assexual' => \MapasCulturais\i::__('Assexual'),
                 'Outra' => \MapasCulturais\i::__('Outra'),
                 'Prefere não responder' => \MapasCulturais\i::__('Prefere não responder'),
             ),
