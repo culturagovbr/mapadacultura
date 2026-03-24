@@ -6,226 +6,55 @@ use MapasCulturais\Utils;
  */
 
  $items = array(
-    \MapasCulturais\i::__('Espaços de Exibição de Filmes') => array(
-        'range' => array(10,19),
-        'items' => array(
-            10 => array( 'name' => \MapasCulturais\i::__('Cine itinerante')),
-            11 => array( 'name' => \MapasCulturais\i::__('Cineclube')),
-            12 => array( 'name' => \MapasCulturais\i::__('Drive-in')),
-            13 => array( 'name' => \MapasCulturais\i::__('Espaço Público Para Projeção de Filmes') ),
-            14 => array( 'name' => \MapasCulturais\i::__('Sala de cinema')),
-        ),
-        
-    ),
-
-    \MapasCulturais\i::__('Bibliotecas') => array(
-        'range' => array(20,29),
-        'items' => array(
-            20 => array( 'name' => \MapasCulturais\i::__('Biblioteca Pública') ),
-            21 => array( 'name' => \MapasCulturais\i::__('Biblioteca Privada')),
-            22 => array( 'name' => \MapasCulturais\i::__('Biblioteca Comunitária (incluí­dos os pontos de leitura)')),
-            23 => array( 'name' => \MapasCulturais\i::__('Biblioteca Escolar')),
-            24 => array( 'name' => \MapasCulturais\i::__('Biblioteca Nacional')),
-            25 => array( 'name' => \MapasCulturais\i::__('Biblioteca Universitária')),
-            26 => array( 'name' => \MapasCulturais\i::__('Biblioteca Especializada'))
-        )
-    ),
-
-    \MapasCulturais\i::__('Teatros') => array(
-        'range' => array(30,39),
-        'items' => array(
-            30 => array('name' => \MapasCulturais\i::__('Teatro Público')),
-            31 => array('name' => \MapasCulturais\i::__('Teatro Privado'))
-        )
-    ),
-
-    \MapasCulturais\i::__('Circos') => array(
-        'range' => array(90,99),
-        'items' => array(
-            90 => array( 'name' => \MapasCulturais\i::__('Circo Itinerante')),
-            91 => array( 'name' => \MapasCulturais\i::__('Circo Fixo')),
-            93 => array( 'name' => \MapasCulturais\i::__('Circo Tradicional') ),
-            94 => array( 'name' => \MapasCulturais\i::__('Circo Moderno')),
-            92 => array( 'name' => \MapasCulturais\i::__('Terreno para Circo') ),
-        )
-    ),
-
-   \MapasCulturais\i::__('Centros Culturais') => array(
-        'range' => array(40,49),
-        'items' => array(
-            40 => array( 'name' => \MapasCulturais\i::__('Centro Cultural Público')),
-            41 => array( 'name' => \MapasCulturais\i::__('Centro Cultural Privado')),
-        )
-    ),
-
-   \MapasCulturais\i::__('Arquivos') => array(
-        'range' => array(50,59),
-        'items' => array(
-            50 => array( 'name' => \MapasCulturais\i::__('Arquivo Público') ),
-            51 => array( 'name' => \MapasCulturais\i::__('Arquivo Privado')),
-        )
-    ),
-
-   \MapasCulturais\i::__('Museus') => array(
-        'range' => array(60,69),
-        'items' => array(
-            60 => array( 'name' => \MapasCulturais\i::__('Museu Público') ),
-            61 => array( 'name' => \MapasCulturais\i::__('Museu Privado')),
-        )
-    ),
-
-    \MapasCulturais\i::__('Demais Equipamentos Culturais') => array(
-        'range' => array(100,199),
-        'items' => array(
-            105 => array( 'name' => \MapasCulturais\i::__('Antiquário')),
-            106 => array( 'name' => \MapasCulturais\i::__('Ateliê')),
-            131 => array( 'name' => \MapasCulturais\i::__('Audioteca')),
-            112 => array( 'name' => \MapasCulturais\i::__('Banca de jornal')),
-            108 => array( 'name' => \MapasCulturais\i::__('Casa de espetáculo')),
-            117 => array( 'name' => \MapasCulturais\i::__('Casa do Patrimônio')),
-            107 => array( 'name' => \MapasCulturais\i::__('Centro de artesanato') ),
-            132 => array( 'name' => \MapasCulturais\i::__('Centro de Artes e Esportes Unificados - CEUs')),
-            129 => array( 'name' => \MapasCulturais\i::__('Centro de tradições') ),
-            116 => array( 'name' => \MapasCulturais\i::__('Centro Comunitário')),
-            114 => array( 'name' => \MapasCulturais\i::__('Creative Bureau')),
-            128 => array( 'name' => \MapasCulturais\i::__('Clube social')),
-            126 => array( 'name' => \MapasCulturais\i::__('Centro cultural itinerante')),
-            133 => array( 'name' => \MapasCulturais\i::__('Coreto')),
-            111 => array( 'name' => \MapasCulturais\i::__('Concha acústica')),
-            109 => array( 'name' => \MapasCulturais\i::__('Danceteria')),
-            110 => array( 'name' => \MapasCulturais\i::__('Estúdio')),
-            113 => array( 'name' => \MapasCulturais\i::__('Espaço para Eventos')),
-            123 => array( 'name' => \MapasCulturais\i::__('Espaço para apresentação de dança')),
-            120 => array( 'name' => \MapasCulturais\i::__('Espaço Mais Cultura')),
-            100 => array( 'name' => \MapasCulturais\i::__('Galeria de arte') ),
-            134 => array( 'name' => \MapasCulturais\i::__('Ginásio Poliesportivo') ),
-            122 => array( 'name' => \MapasCulturais\i::__('Gafieira')),
-            104 => array( 'name' => \MapasCulturais\i::__('Lan-house')),
-            101 => array( 'name' => \MapasCulturais\i::__('Livraria')),
-            137 => array( 'name' => \MapasCulturais\i::__('Núcleos de Produção Digital')),
-            115 => array( 'name' => \MapasCulturais\i::__('Ponto de Leitura Afro')),
-            119 => array( 'name' => \MapasCulturais\i::__('Praça dos esportes e da cultura') ),
-            125 => array( 'name' => \MapasCulturais\i::__('Ponto de Cultura')),
-            136 => array( 'name' => \MapasCulturais\i::__('Pontos de Memória')),
-            124 => array( 'name' => \MapasCulturais\i::__('Rádio Comunitária')),
-            135 => array( 'name' => \MapasCulturais\i::__('Sala de Leitura')),
-            130 => array( 'name' => \MapasCulturais\i::__('Sala Multiuso')),
-            121 => array( 'name' => \MapasCulturais\i::__('Sala de dança')),
-            102 => array( 'name' => \MapasCulturais\i::__('Sebo')),
-            127 => array( 'name' => \MapasCulturais\i::__('Trio elétrico')),
-            118 => array( 'name' => \MapasCulturais\i::__('Usina Cultural')),
-            103 => array( 'name' => \MapasCulturais\i::__('Videolocadora') ),
-
-            199 => array( 'name' => \MapasCulturais\i::__('Outros Equipamentos Culturais')), // adicionado na importação dos dados do Ceará para receber as endidades do tipo "equipamento"
-        )
-    ),
-
-   \MapasCulturais\i::__('Centros de Documentação') => array(
-        'range' => array(70,79),
-        'items' => array(
-            70 => array( 'name' => \MapasCulturais\i::__('Centro de Documentação Público') ),
-            71 => array( 'name' => \MapasCulturais\i::__('Centro de Documentação Privado')),
-        )
-    ),
-
-   \MapasCulturais\i::__('Espaços Religiosos') => array(
-        'range' => array(80,89),
-        'items' => array(
-            85 => array( 'name' => \MapasCulturais\i::__('Centro Espírita') ),
-            84 => array( 'name' => \MapasCulturais\i::__('Igreja')),
-            82 => array( 'name' => \MapasCulturais\i::__('Mesquitas')),
-            83 => array( 'name' => \MapasCulturais\i::__('Sinagoga')),
-            81 => array( 'name' => \MapasCulturais\i::__('Terreiro')),
-            80 => array( 'name' => \MapasCulturais\i::__('Templo')),
-          )
-    ),
 
 /**
-* Espaços de Formação Cultural
+* Tipos de Espaços e Equipamentos Culturais (Novo Padrão)
 */
 
-   \MapasCulturais\i::__('Instituições Públicas de Ensino Regular') => array(
-        'range' => array(300,399),
+    \MapasCulturais\i::__('Tipos de Espaços e Equipamentos Culturais') => array(
+        'range' => array(2000, 2040),
         'items' => array(
-            300 => array( 'name' => \MapasCulturais\i::__('Instituição Pública de Ensino Regular Federal')),
-            301 => array( 'name' => \MapasCulturais\i::__('Instituição Pública de Ensino Regular Estadual')),
-            302 => array( 'name' => \MapasCulturais\i::__('Instituição Pública de Ensino Regular Municipal')),
-            303 => array( 'name' => \MapasCulturais\i::__('Instituição Pública de Ensino Regular Distrital')),
-          )
-    ),
-
-   \MapasCulturais\i::__('Instituições Privadas de Ensino Regular') => array(
-        'range' => array(400,499),
-        'items' => array(
-            400 => array( 'name' => \MapasCulturais\i::__('Instituição Privada Particular')),
-            401 => array( 'name' => \MapasCulturais\i::__('Instituição Privada Comunitária')),
-            402 => array( 'name' => \MapasCulturais\i::__('Instituição Privada Confessional')),
-            403 => array( 'name' => \MapasCulturais\i::__('Instituição Privada Filantrópica')),
-          )
-    ),
-
-   \MapasCulturais\i::__('Instituições Públicas exclusivamente voltada para formação artistica e cultural') => array(
-        'range' => array(601,699),
-        'items' => array(
-            601 => array( 'name' => \MapasCulturais\i::__('Instituição Pública Federal exclusivamente voltada para formação artistica e cultural')),
-            602 => array( 'name' => \MapasCulturais\i::__('Instituição Pública Estadual exclusivamente voltada para formação artistica e cultural')),
-            603 => array( 'name' => \MapasCulturais\i::__('Instituição Pública Municipal exclusivamente voltada para formação artistica e cultural')),
-            604 => array( 'name' => \MapasCulturais\i::__('Instituição Pública Distrital exclusivamente voltada para formação artistica e cultural')),
-          )
-    ),
-
-   \MapasCulturais\i::__('Instituições Privadas exclusivamente voltada para formação artistica e cultural') => array(
-        'range' => array(700,799),
-        'items' => array(
-            700 => array( 'name' => \MapasCulturais\i::__('Instituição Privada Particular exclusivamente voltada para formação artistica e cultural')),
-            701 => array( 'name' => \MapasCulturais\i::__('Instituição Privada Comunitária exclusivamente voltada para formação artistica e cultural')),
-            702 => array( 'name' => \MapasCulturais\i::__('Instituição Privada Confessional exclusivamente voltada para formação artistica e cultural')),
-            703 => array( 'name' => \MapasCulturais\i::__('Instituição Privada Filantrópica exclusivamente voltada para formação artistica e cultural')),
-          )
-    ),
-
-   \MapasCulturais\i::__('Escolas livres') => array(
-        'range' => array(800,899),
-        'items' => array(
-            800 => array( 'name' => \MapasCulturais\i::__('Escola livre de Artes Cênicas')),
-            801 => array( 'name' => \MapasCulturais\i::__('Escola livre de Artes Visuais')),
-            802 => array( 'name' => \MapasCulturais\i::__('Escola livre de Audiovisual')),
-            803 => array( 'name' => \MapasCulturais\i::__('Escola livre de Hip Hop')),
-            804 => array( 'name' => \MapasCulturais\i::__('Escola livre de Cultura Digital')),
-            805 => array( 'name' => \MapasCulturais\i::__('Escola livre de Música')),
-            806 => array( 'name' => \MapasCulturais\i::__('Escola livre de Cultura Popular')),
-            807 => array( 'name' => \MapasCulturais\i::__('Escola livre de Gestão Cultural')),
-            808 => array( 'name' => \MapasCulturais\i::__('Escola livre de Pontinhos de cultura') ),
-            809 => array( 'name' => \MapasCulturais\i::__('Escola livre de Patrimônio')),
-            810 => array( 'name' => \MapasCulturais\i::__('Escola livre de Design')),
-          )
-    ),
-
-/**
-* Patrimônios Culturais
-*/
-
-    \MapasCulturais\i::__('Bens culturais de natureza material') => array(
-        'range' => array(200, 299),
-        'items' => array(
-            200 => array( 'name' => \MapasCulturais\i::__('Bens culturais de natureza material')),
-            201 => array( 'name' => \MapasCulturais\i::__('Bem Imóvel')),
-            202 => array( 'name' => \MapasCulturais\i::__('Bem Arqueológico')),
-            203 => array( 'name' => \MapasCulturais\i::__('Bem Paisagístico')),
-            204 => array( 'name' => \MapasCulturais\i::__('Bem Móvel ou Integrado')),
-            210 => array( 'name' => \MapasCulturais\i::__('Bens culturais de natureza imaterial')), // adicionado na importação dos dados do Ceará para receber as endidades do tipo "patrimonio-imaterial"
-            207 => array( 'name' => \MapasCulturais\i::__('Coleções')),
-            206 => array( 'name' => \MapasCulturais\i::__('Documentação')),
-            205 => array( 'name' => \MapasCulturais\i::__('Sitio Histórico')),
-
-            299 => array( 'name' => \MapasCulturais\i::__('Outros')) // adicionado na importação dos dados do Ceará para receber as endidades do tipo "post"
-        )
-    ),
-
-    \MapasCulturais\i::__('Temporário') => array(
-        'range' => array(500,600),
-        'items' => array(
-            501 => array( 'name' => \MapasCulturais\i::__('Palco de Rua')),
+            2000 => array( 'name' => \MapasCulturais\i::__('Arena ou semi arena de apresentações')),
+            2001 => array( 'name' => \MapasCulturais\i::__('Associação Comunitária')),
+            2002 => array( 'name' => \MapasCulturais\i::__('Atelier')),
+            2003 => array( 'name' => \MapasCulturais\i::__('Auditório')),
+            2004 => array( 'name' => \MapasCulturais\i::__('Biblioteca')),
+            2005 => array( 'name' => \MapasCulturais\i::__('Biblioteca Comunitária')),
+            2006 => array( 'name' => \MapasCulturais\i::__('Biblioteca Parque')),
+            2007 => array( 'name' => \MapasCulturais\i::__('Casa da Cultura')),
+            2008 => array( 'name' => \MapasCulturais\i::__('Casa de Espetáculo')),
+            2009 => array( 'name' => \MapasCulturais\i::__('Centro Cultural')),
+            2010 => array( 'name' => \MapasCulturais\i::__('Centro de Convenções')),
+            2011 => array( 'name' => \MapasCulturais\i::__('Centro de convivência')),
+            2012 => array( 'name' => \MapasCulturais\i::__('Centro de Memória e Patrimônio')),
+            2013 => array( 'name' => \MapasCulturais\i::__('Centro de Tradição Regional')),
+            2014 => array( 'name' => \MapasCulturais\i::__('Cinemas, cineclubes e salas de exibição')),
+            2015 => array( 'name' => \MapasCulturais\i::__('Cinemateca')),
+            2016 => array( 'name' => \MapasCulturais\i::__('Circo (inclusive itinerante)')),
+            2017 => array( 'name' => \MapasCulturais\i::__('Escola de arte e cultura')),
+            2018 => array( 'name' => \MapasCulturais\i::__('Escola de samba')),
+            2019 => array( 'name' => \MapasCulturais\i::__('Escola de alimentação e cultura')),
+            2020 => array( 'name' => \MapasCulturais\i::__('Espaço de Leitura')),
+            2021 => array( 'name' => \MapasCulturais\i::__('Espaço Multiuso')),
+            2022 => array( 'name' => \MapasCulturais\i::__('Espaços makers')),
+            2023 => array( 'name' => \MapasCulturais\i::__('Estúdio de audiovisual')),
+            2024 => array( 'name' => \MapasCulturais\i::__('Estúdio de Dança')),
+            2025 => array( 'name' => \MapasCulturais\i::__('Estúdio de Música')),
+            2026 => array( 'name' => \MapasCulturais\i::__('FabLabs')),
+            2027 => array( 'name' => \MapasCulturais\i::__('Galeria e espaços de exposição')),
+            2028 => array( 'name' => \MapasCulturais\i::__('Imóvel patrimonializado')),
+            2029 => array( 'name' => \MapasCulturais\i::__('Laboratórios de Economia Criativa')),
+            2030 => array( 'name' => \MapasCulturais\i::__('Livraria, alfarrábio ou sebo')),
+            2031 => array( 'name' => \MapasCulturais\i::__('Memorial')),
+            2032 => array( 'name' => \MapasCulturais\i::__('Mercados de arte e artesanato')),
+            2033 => array( 'name' => \MapasCulturais\i::__('Museu')),
+            2034 => array( 'name' => \MapasCulturais\i::__('Ponto de Leitura')),
+            2035 => array( 'name' => \MapasCulturais\i::__('Pontos e Pontões de Cultura')),
+            2036 => array( 'name' => \MapasCulturais\i::__('Rádios comunitárias')),
+            2037 => array( 'name' => \MapasCulturais\i::__('Sala de Concerto')),
+            2038 => array( 'name' => \MapasCulturais\i::__('Sambódromo')),
+            2039 => array( 'name' => \MapasCulturais\i::__('Teatro')),
+            2040 => array( 'name' => \MapasCulturais\i::__('Outros (informar qual)')),
         )
     ),
 );
