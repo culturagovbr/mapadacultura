@@ -313,14 +313,12 @@ return array(
             'label' => \MapasCulturais\i::__('Raça/cor'),
             'type' => 'select',
             'options' => array(
+                '' => \MapasCulturais\i::__('Não informado'),
                 'Branca' => \MapasCulturais\i::__('Branca'),
                 'Preta' => \MapasCulturais\i::__('Preta'),
                 'Amarela' => \MapasCulturais\i::__('Amarela'),
                 'Parda' => \MapasCulturais\i::__('Parda'),
                 'Indígena' => \MapasCulturais\i::__('Indígena')
-            ),
-            'validations' => array(
-                'required' => \MapasCulturais\i::__('O campo Raça/cor é obrigatório.')
             ),
             'available_for_opportunities' => true
         ),
