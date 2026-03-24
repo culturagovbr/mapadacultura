@@ -102,7 +102,6 @@ return array(
                 MapasCulturais\i::__('Faxinalenses'),
                 MapasCulturais\i::__('Geraizeiros'),
                 MapasCulturais\i::__('Ilhéus'),
-                MapasCulturais\i::__('Juventude de povos e comunidades tradicionais'),
                 MapasCulturais\i::__('Morroquianos'),
                 MapasCulturais\i::__('Pantaneiros'),
                 MapasCulturais\i::__('Pescadores artesanais'),
