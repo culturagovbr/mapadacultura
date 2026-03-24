@@ -253,6 +253,24 @@ return array(
             ),
         ),
 
+        'etapa' => array(
+            'label' => \MapasCulturais\i::__('Etapa do fazer cultural'),
+            'type' => 'multiselect',
+            'options' => array(
+                \MapasCulturais\i::__('Criação'),
+                \MapasCulturais\i::__('Produção'),
+                \MapasCulturais\i::__('Comercialização e Distribuição'),
+                \MapasCulturais\i::__('Difusão e Circulação'),
+                \MapasCulturais\i::__('Acesso, mediação e fruição'),
+                \MapasCulturais\i::__('Formação'),
+                \MapasCulturais\i::__('Pesquisa e reflexão'),
+                \MapasCulturais\i::__('Memória e Preservação'),
+                \MapasCulturais\i::__('Organização e gestão'),
+                \MapasCulturais\i::__('Monitoramento e avaliação'),
+                \MapasCulturais\i::__('Outra (especificar)'),
+            ),
+        ),
+
         /** @TODO: colocar isso na entidade Opportunity (issue: #1273) **/
         'projectName' => array(
             'label' => \MapasCulturais\i::__('Nome do Projeto'),
