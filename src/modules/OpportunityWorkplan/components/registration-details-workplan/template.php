@@ -60,6 +60,12 @@ $this->import('
                 {{ goal.culturalMakingStage }}
             </div>
 
+            <!-- Especificar etapa do fazer cultural (condicional) -->
+            <div v-if="goal.culturalMakingStage === 'Outra (especificar)' && goal.culturalMakingStageOther" class="field">
+                <label><?= i::esc_attr__('Especificar etapa do fazer cultural') ?></label>
+                {{ goal.culturalMakingStageOther }}
+            </div>
+
             <div v-for="(delivery, index_) in goal.deliveries" :key="delivery.id" class="registration-details-workplan__goals__deliveries">
                 <div class="registration-details-workplan__header-deliveries">
                     <h4 class="registration-details-workplan__goals-title">
@@ -78,6 +84,12 @@ $this->import('
                 <div v-if="delivery.typeDelivery" class="field">
                     <label><?= i::esc_attr__('Tipo') ?></label>
                     {{ delivery.typeDelivery }}
+                </div>
+
+                <!-- Especificar tipo de entrega (condicional) -->
+                <div v-if="delivery.typeDelivery === 'Outros (especificar)' && delivery.typeDeliveryOther" class="field">
+                    <label><?= i::esc_attr__('Especificar tipo de entrega') ?></label>
+                    {{ delivery.typeDeliveryOther }}
                 </div>
 
                 <div v-if="delivery.segmentDelivery" class="field">
