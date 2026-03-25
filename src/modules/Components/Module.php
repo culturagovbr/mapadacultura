@@ -315,6 +315,18 @@ class Module extends \MapasCulturais\Module {
             return $__html;
         });
 
+        $app->hook('mapas.printJsObject:before', function () use($app) {
+            // Configuração global do tipo "Outros" para espaços
+            $other_space_type_id = 2040;
+            $other_space_type = $app->getRegisteredEntityTypeById('MapasCulturais\Entities\Space', $other_space_type_id);
+            
+            $this->jsObject['config']['entityTypes'] = [
+                'space' => [
+                    'otherTypeId' => $other_space_type_id,
+                    'otherTypeName' => $other_space_type ? $other_space_type->name : null
+                ]
+            ];
+        });
     }
 
     function register() {}

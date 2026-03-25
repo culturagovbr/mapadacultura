@@ -1,3 +1,4 @@
+
 app.component('registration-workplan', {
     template: $TEMPLATES['registration-workplan'],
     setup() {
@@ -241,6 +242,7 @@ app.component('registration-workplan', {
             entityGoal.title = null;
             entityGoal.description = null;
             entityGoal.culturalMakingStage = null;
+            entityGoal.culturalMakingStageOther = null;
             entityGoal.deliveries = [];
 
 
@@ -281,9 +283,10 @@ app.component('registration-workplan', {
             entityDelivery.monthEnd = null;
             entityDelivery.name = null;
             entityDelivery.description = null;
-            entityDelivery.typeDelivery = null
+            entityDelivery.typeDelivery = null;
+            entityDelivery.typeDeliveryOther = null;
             entityDelivery.segmentDelivery = null;
-            entityDelivery.expectedNumberPeople = null
+            entityDelivery.expectedNumberPeople = null;
             entityDelivery.generaterRevenue = null;
             entityDelivery.renevueQtd = null;
             entityDelivery.unitValueForecast = null;
@@ -379,12 +382,13 @@ app.component('registration-workplan', {
                 if (this.opportunity.workplan_goalInformTitle && this.opportunity.workplan_goalRequireTitle && !goal.title) emptyFields.push(`Título da ${this.getGoalLabelDefault}`);
                 if (this.opportunity.workplan_goalInformDescription && this.opportunity.workplan_goalRequireDescription && !goal.description) emptyFields.push("Descrição");
                 if (this.opportunity.workplan_metaInformTheStageOfCulturalMaking && !goal.culturalMakingStage) emptyFields.push("Etapa do fazer cultural");
-                if (this.opportunity.workplan_deliveryReportTheDeliveriesLinkedToTheGoals && goal.deliveries.length === 0) emptyFields.push(`${this.getDeliveryLabelDefault}`);
+                if (this.opportunity.workplan_metaInformTheStageOfCulturalMaking && goal.culturalMakingStage === 'Outra (especificar)' && !goal.culturalMakingStageOther) emptyFields.push("Especificar etapa do fazer cultural");
+                if (this.opportunity.workplan_deliveryReportTheDeliveriesLinkedToTheGoals && (goal.deliveries || []).length === 0) emptyFields.push(`${this.getDeliveryLabelDefault}`);
 
-                const validateDelivery = this.validateDelivery(goal);
-                if (validateDelivery.length > 0) {
+                const deliveryErrors = this.validateDelivery(goal);
+                if (deliveryErrors.length > 0) {
                     emptyFields.push(`${this.getDeliveryLabelDefault}`);
-                    emptyFields.push(validateDelivery);
+                    deliveryErrors.forEach((msg) => emptyFields.push(msg));
                 }
 
                 // Adicionar mensagem ao array se houver campos vazios
@@ -406,17 +410,16 @@ app.component('registration-workplan', {
             return true;
         },
         validateDelivery(goal) {
-            const messages = useMessages();
-
             let validationMessages = [];
 
-            goal.deliveries.forEach((delivery, index) => {
+            (goal.deliveries || []).forEach((delivery, index) => {
                 let emptyFields = [];
                 let position = index + 1;
 
                 if ('name' in delivery && !delivery.name) emptyFields.push(`Nome da ${this.getDeliveryLabelDefault}`);
                 if ('description' in delivery && !delivery.description) emptyFields.push(`Descrição da ${this.getDeliveryLabelDefault}`);
                 if ('typeDelivery' in delivery && !delivery.typeDelivery) emptyFields.push(`Tipo de ${this.getDeliveryLabelDefault}`);
+                if ('typeDelivery' in delivery && delivery.typeDelivery === 'Outros (especificar)' && !delivery.typeDeliveryOther) emptyFields.push(`Especificar tipo de ${this.getDeliveryLabelDefault}`);
 
                 // Validação de mês inicial e final em relação ao período da meta
                 if (this.opportunity.workplan_deliveryInformDeliveryPeriod) {
@@ -521,6 +524,18 @@ app.component('registration-workplan', {
         },
         range(start, end) {
             return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+        },
+        handleCulturalMakingStageChange(goal) {
+            // Limpa o campo de especificação se outra opção for selecionada
+            if (goal.culturalMakingStage !== 'Outra (especificar)') {
+                goal.culturalMakingStageOther = null;
+            }
+        },
+        handleTypeDeliveryChange(delivery) {
+            // Limpa o campo de especificação se outra opção for selecionada
+            if (delivery.typeDelivery !== 'Outros (especificar)') {
+                delivery.typeDeliveryOther = null;
+            }
         },
         updateEnableButtonNewGoal() {
             this.enableButtonNewGoal = this.enableNewGoal(this.workplan);

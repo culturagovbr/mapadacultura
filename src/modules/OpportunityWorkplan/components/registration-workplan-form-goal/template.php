@@ -55,6 +55,12 @@ $this->import('
             {{ goal.culturalMakingStage }}
         </div>
 
+        <!-- Especificar etapa do fazer cultural (condicional) -->
+        <div v-if="goal.culturalMakingStage === 'Outra (especificar)' && goal.culturalMakingStageOther" class="field">
+            <label><?= i::__('Especificar etapa do fazer cultural') ?></label>
+            {{ goal.culturalMakingStageOther }}
+        </div>
+
         <div class="field" v-if="editable || proxy.executionDetail">
             <label :for="`${vid}__executionDetail`"><?= i::__('Detalhamento da execução da meta') ?></label>
             <textarea v-if="editable" :id="`${vid}__executionDetail`" v-model="proxy.executionDetail" placeholder="<?= i::esc_attr__('Digite') ?>"></textarea>

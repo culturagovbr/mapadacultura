@@ -28,6 +28,25 @@ app.component('mc-entity', {
         scope: String
     },
 
+    computed: {
+        // Computed que retorna o ID do tipo "Outros" para spaces
+        spaceOtherTypeId() {
+            return Utils.getSpaceOtherTypeId();
+        },
+        
+        // Computed que retorna as props do slot condicionalmente
+        slotProps() {
+            const props = { entity: this.entity };
+            
+            // Só adiciona spaceOtherTypeId se a entity for do tipo 'space'
+            if (this.entity?.__objectType === 'space') {
+                props.spaceOtherTypeId = this.spaceOtherTypeId;
+            }
+            
+            return props;
+        }
+    },
+
     methods: {
         getDataFromApi() {
             const api = new API(this.type, this.scope || 'default');
