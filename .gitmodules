@@ -28,3 +28,9 @@
 [submodule "src/plugins/AldirBlanc"]
 	path = src/plugins/AldirBlanc
 	url = https://github.com/culturagovbr/plugin-AldirBlanc.git
+[submodule "src/plugins/RCV"]
+	path = src/plugins/RCV
+	url = https://github.com/culturagovbr/plugin-RCV.git
+[submodule "src/themes/CulturaViva"]
+	path = src/themes/CulturaViva
+	url = https://github.com/culturagovbr/theme-CulturaViva.git
