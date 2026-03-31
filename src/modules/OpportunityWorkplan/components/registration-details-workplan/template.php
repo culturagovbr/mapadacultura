@@ -139,7 +139,7 @@ $this->import('
                     {{ delivery.artChainLink }}
                 </div>
 
-                <div v-if="opportunity.workplan_deliveryInformTotalBudget && delivery.totalBudget" class="field">
+                <div v-if="opportunity.workplan_deliveryInformTotalBudget && delivery.totalBudget !== null && delivery.totalBudget !== ''" class="field">
                     <label><?= i::esc_attr__('Orçamento total') ?></label>
                     {{ convertToCurrency(delivery.totalBudget) }}
                 </div>
@@ -173,7 +173,7 @@ $this->import('
                         <label><?= i::esc_attr__('Unidades para comercialização') ?></label>
                         {{ delivery.commercialUnits }}
                     </div>
-                    <div v-if="delivery.unitPrice" class="field">
+                    <div v-if="delivery.unitPrice !== null && delivery.unitPrice !== ''" class="field">
                         <label><?= i::esc_attr__('Valor unitário previsto') ?></label>
                         {{ convertToCurrency(delivery.unitPrice) }}
                     </div>
