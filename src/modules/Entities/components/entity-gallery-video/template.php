@@ -21,7 +21,7 @@ $this->import('
         <div v-for="(metalist, index) in videos" class="entity-gallery__list--video">
             <div>
                 <div @click="openVideo(index); open()" class="entity-gallery__list--video-img">
-                    <img :src="metalist.video.thumbnail" />
+                    <img :src="metalist.video?.thumbnail" />
                 </div>                
                 <p @click="openVideo(index); open()" class="entity-gallery__list--video-label"> {{metalist.title}} </p>
             </div>
