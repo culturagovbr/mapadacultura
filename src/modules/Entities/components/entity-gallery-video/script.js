@@ -50,19 +50,63 @@ app.component('entity-gallery-video', {
 
     },
 
-    mounted() {
-    },
-
     computed: {
         videos() {
-            Object(this.entity.metalists.videos).forEach((content, index)=>{        
-                content.video = this.getVideoBasicData(content.value);  
-            });
-            return this.entity.metalists.videos;
-        }
+            const items = this.entity.metalists?.videos;
+            return Array.isArray(items) ? items : [];
+        },
+
+        /**
+         * Chave derivada só de dados persistidos (id, value, title).
+         * Evita watch profundo que dispararia a cada tecla em metalist.newData.* (popover de edição).
+         */
+        videosMetalistSyncKey() {
+            const items = this.entity.metalists?.videos;
+            if (!Array.isArray(items) || items.length === 0) {
+                return '';
+            }
+            return items
+                .map((item, index) => {
+                    const idPart = item.id != null ? String(item.id) : `i:${index}`;
+                    return [idPart, String(item.value ?? ''), String(item.title ?? '')].join('\u001f');
+                })
+                .join('\u001e');
+        },
     },
-    
+
+    watch: {
+        videosMetalistSyncKey: {
+            handler() {
+                this.syncVideoMetalistItems(this.videos);
+            },
+            immediate: true,
+        },
+    },
+
     methods: {
+        syncVideoMetalistItems(items) {
+            if (!items.length) {
+                return;
+            }
+            items.forEach((content) => {
+                const parsed = this.getVideoBasicData(content.value);
+                const previous = content.video;
+                const unchanged =
+                    previous &&
+                    previous.provider === parsed.provider &&
+                    previous.videoID === parsed.videoID;
+                if (!unchanged) {
+                    content.video = parsed;
+                }
+                if (!content.newData) {
+                    content.newData = {
+                        title: content.title,
+                        value: content.value,
+                    };
+                }
+            });
+        },
+
         // separa os dados do vídeo pela URL
         getVideoBasicData(url) {
             try {
@@ -113,17 +157,29 @@ app.component('entity-gallery-video', {
         },
         // Abertura da imagem na modal
         openVideo(index) {
-            this.actualVideo = this.entity.metalists.videos[index];
+            const list = this.entity.metalists?.videos;
+            if (!list?.length) {
+                return;
+            }
+            this.actualVideo = list[index];
             this.actualVideoIndex = index;
         },
         // Avança entre os vídeos
         prev() {
-            this.actualVideoIndex = (this.actualVideoIndex > 0) ? --this.actualVideoIndex : this.entity.metalists.videos.length-1 ;
+            const list = this.entity.metalists?.videos;
+            if (!list?.length) {
+                return;
+            }
+            this.actualVideoIndex = (this.actualVideoIndex > 0) ? --this.actualVideoIndex : list.length - 1;
             this.openVideo(this.actualVideoIndex);
         },
         // Recua entre os vídeos
         next() {
-            this.actualVideoIndex = (this.actualVideoIndex < this.entity.metalists.videos.length-1) ? ++this.actualVideoIndex : 0 ;
+            const list = this.entity.metalists?.videos;
+            if (!list?.length) {
+                return;
+            }
+            this.actualVideoIndex = (this.actualVideoIndex < list.length - 1) ? ++this.actualVideoIndex : 0;
             this.openVideo(this.actualVideoIndex);
         },
         // Adiciona video na entidade
