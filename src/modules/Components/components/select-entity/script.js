@@ -19,6 +19,8 @@ app.component('select-entity', {
     },
 
     created() {
+        this.applyDefaultNameFilter();
+
         switch (this.type) {
             case 'agent':
                 this.itensText = this.text('Selecione um dos agentes');
@@ -59,7 +61,7 @@ app.component('select-entity', {
         },
         query: {
             type: Object,
-            default: {}
+            default: () => ({})
         },
         permissions: {
             type: String,
@@ -98,6 +100,21 @@ app.component('select-entity', {
     },
     
     methods: {
+        applyDefaultNameFilter() {
+            const entityDescription = $DESCRIPTIONS?.[this.type];
+            const hasNameField = Boolean(entityDescription?.name);
+
+            if (!hasNameField) {
+                return;
+            }
+
+            if (Object.prototype.hasOwnProperty.call(this.query, 'name')) {
+                return;
+            }
+
+            this.query.name = 'AND(!NULL(),!EQ())';
+        },
+
         selectEntity(entity, close) {
             this.$emit('select', entity);
             close();
