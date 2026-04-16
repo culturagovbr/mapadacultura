@@ -18,25 +18,6 @@ app.component('opportunity-evaluation-committee', {
     },
 
     computed: {
-        query() {
-            let query = {
-                '@select': 'id,name,files.avatar,user',
-                '@order': 'id ASC',
-                '@limit': '25',
-                '@page': '1',
-                'type': 'EQ(1)',
-            };
-
-            if (this.reviewersId.length > 0) {
-                const ids = this.reviewersId.join(',');
-                query['id'] = `!IN(${ids})`;
-            } else {
-                delete query['id'];
-            }
-
-            return query;
-        },
-
         allExpanded() {
             return this.infosReviewers.every(reviewer => reviewer.isContentVisible);
         },
@@ -74,6 +55,13 @@ app.component('opportunity-evaluation-committee', {
             showReviewers: false,
             infosReviewers: [],
             queryString: 'id,name,files.avatar,user',
+            agentsQuery: {
+                '@select': 'id,name,files.avatar,user',
+                '@order': 'id ASC',
+                '@limit': '25',
+                '@page': '1',
+                type: 'EQ(1)',
+            },
             selectCategories: [],
             registrationCategories: [
                 'sem avaliações',
@@ -91,8 +79,27 @@ app.component('opportunity-evaluation-committee', {
             fetchFields: this.entity.fetchFields
         }
     },
+
+    watch: {
+        reviewersId: {
+            handler() {
+                this.syncAgentsQueryIdFilter();
+            },
+            deep: true,
+        },
+    },
     
     methods: {   
+        syncAgentsQueryIdFilter() {
+            if (this.reviewersId.length > 0) {
+                const ids = this.reviewersId.join(',');
+                this.agentsQuery.id = `!IN(${ids})`;
+                return;
+            }
+
+            delete this.agentsQuery.id;
+        },
+
         showSummary(summary) {
             return summary ? Object.values(summary).some(value => value > 0) : false;
         },
@@ -182,6 +189,7 @@ app.component('opportunity-evaluation-committee', {
                 this.infosReviewers = [...pendingReviews, ...acceptedReviews];
 
                 this.reviewersId = this.infosReviewers.map((reviewer) => reviewer.agent.id);
+                this.syncAgentsQueryIdFilter();
 
                 this.infosReviewers = this.infosReviewers.filter (reviewer => {
                     if (this.showDisabled) {
