@@ -36,10 +36,35 @@ class Module extends \MapasCulturais\Module{
             $app->hook("entity(Registration).sendValidationErrors", function (&$errorsResult) use($app) {
                 $registration = $this;
 
+                $errors = [];
+
+                $appendUniqueError = function (string $bucket, string $message) use (&$errors): void {
+                    if (!isset($errors[$bucket])) {
+                        $errors[$bucket] = [];
+                    }
+                    if (!in_array($message, $errors[$bucket], true)) {
+                        $errors[$bucket][] = $message;
+                    }
+                };
+
+                $appendStructuredError = function (string $entity, int $id, string $field, array $messages) use (&$errors): void {
+                    if (!isset($errors['workplanProxy'])) {
+                        $errors['workplanProxy'] = ['goals' => [], 'deliveries' => []];
+                    }
+                    foreach ($messages as $message) {
+                        if (!isset($errors['workplanProxy'][$entity][$id][$field])) {
+                            $errors['workplanProxy'][$entity][$id][$field] = [];
+                        }
+                        if (!in_array($message, $errors['workplanProxy'][$entity][$id][$field], true)) {
+                            $errors['workplanProxy'][$entity][$id][$field][] = $message;
+                        }
+                    }
+                };
+
+                // ── Fase de inscrição ──────────────────────────────────────────────────────
                 if ($registration->opportunity->enableWorkplan) {
                     $workplan = $app->repo(Workplan::class)->findOneBy(['registration' => $registration->id]);
-
-                    $errors = [];
+                    $opp = $registration->opportunity;
 
                     if (!$workplan) {
                         $errors['workplan'] = [i::__('Plano de metas obrigatório.')];
@@ -49,10 +74,8 @@ class Module extends \MapasCulturais\Module{
                         $errors['projectDuration'] = [i::__('Plano de metas - Duração do projeto (meses) obrigatório.')];
                     }
 
-                    // Validação condicional de segmento artístico-cultural (Workplan)
-                    if ($registration->opportunity->workplan_dataProjectInformCulturalArtisticSegment) {
-                        $requireSegment = $registration->opportunity->workplan_dataProjectRequireCulturalArtisticSegment ?? false;
-                        if ($requireSegment && !$workplan?->culturalArtisticSegment) {
+                    if ($opp->workplan_dataProjectInformCulturalArtisticSegment) {
+                        if (($opp->workplan_dataProjectRequireCulturalArtisticSegment ?? false) && !$workplan?->culturalArtisticSegment) {
                             $errors['culturalArtisticSegment'] = [i::__('Plano de metas - Segmento artístico-cultural obrigatório.')];
                         }
                     }
@@ -61,56 +84,38 @@ class Module extends \MapasCulturais\Module{
                         $errors['goal'] = [i::__('Meta do plano de metas obrigatório.')];
                     }
 
-                    // Validação de campos de goal com obrigatoriedade configurável
                     if ($workplan && is_iterable($workplan->goals)) {
                         foreach ($workplan->goals as $goal) {
-                            // Validar título da meta
-                            if ($registration->opportunity->workplan_goalInformTitle) {
-                                $requireTitle = $registration->opportunity->workplan_goalRequireTitle ?? false;
-                                if ($requireTitle && !$goal->title) {
-                                    $errors['goal'][] = i::__('Título da meta obrigatório');
-                                }
+                            if ($opp->workplan_goalInformTitle && ($opp->workplan_goalRequireTitle ?? false) && !$goal->title) {
+                                $errors['goal'][] = i::__('Título da meta obrigatório');
                             }
-
-                            // Validar descrição da meta
-                            if ($registration->opportunity->workplan_goalInformDescription) {
-                                $requireDescription = $registration->opportunity->workplan_goalRequireDescription ?? false;
-                                if ($requireDescription && !$goal->description) {
-                                    $errors['goal'][] = i::__('Descrição da meta obrigatória');
-                                }
+                            if ($opp->workplan_goalInformDescription && ($opp->workplan_goalRequireDescription ?? false) && !$goal->description) {
+                                $errors['goal'][] = i::__('Descrição da meta obrigatória');
                             }
-
-                            // Validar mês inicial e final da meta — sempre obrigatórios
                             if (!$goal->monthInitial) {
                                 $errors['goal'][] = i::__('Mês inicial da meta obrigatório.');
                             }
                             if (!$goal->monthEnd) {
                                 $errors['goal'][] = i::__('Mês final da meta obrigatório.');
                             }
-
-                            // Validar etapa do fazer cultural — obrigatório quando a seção está visível
-                            if ($registration->opportunity->workplan_metaInformTheStageOfCulturalMaking && !$goal->culturalMakingStage) {
+                            if ($opp->workplan_metaInformTheStageOfCulturalMaking && !$goal->culturalMakingStage) {
                                 $errors['goal'][] = i::__('Etapa do fazer cultural obrigatória.');
                             }
                         }
                     }
 
-                    if ($registration->opportunity->workplan_deliveryReportTheDeliveriesLinkedToTheGoals) {
-                        if (is_iterable($workplan?->goals)) {
-                            foreach ($workplan?->goals as $goal) {
-                                if ($goal?->deliveries->isEmpty()) {
-                                    $errors['delivery'][] = i::__('Entrega da meta do plano de metas obrigatório.');
-                                }
+                    if ($opp->workplan_deliveryReportTheDeliveriesLinkedToTheGoals && is_iterable($workplan?->goals)) {
+                        foreach ($workplan->goals as $goal) {
+                            if ($goal->deliveries->isEmpty()) {
+                                $errors['delivery'][] = i::__('Entrega da meta do plano de metas obrigatório.');
                             }
                         }
                     }
 
-                    // Validação de campos de delivery com obrigatoriedade configurável
                     if ($workplan && is_iterable($workplan->goals)) {
                         foreach ($workplan->goals as $goal) {
                             if (is_iterable($goal->deliveries)) {
                                 foreach ($goal->deliveries as $delivery) {
-                                    // Campos core da entrega — sempre obrigatórios
                                     if (!$delivery->name) {
                                         $errors['delivery'][] = i::__("Campo 'Nome' obrigatório em uma das entregas.");
                                     }
@@ -121,9 +126,7 @@ class Module extends \MapasCulturais\Module{
                                         $errors['delivery'][] = i::__("Campo 'Tipo de entrega' obrigatório na entrega '{$delivery->name}'.");
                                     }
 
-                                    // Validar período de realização da entrega
-                                    if ($registration->opportunity->workplan_deliveryInformDeliveryPeriod &&
-                                        $registration->opportunity->workplan_deliveryRequireDeliveryPeriod) {
+                                    if ($opp->workplan_deliveryInformDeliveryPeriod && $opp->workplan_deliveryRequireDeliveryPeriod) {
                                         if (!$delivery->monthInitial) {
                                             $errors['delivery'][] = i::__("Campo 'Mês inicial' obrigatório na entrega '{$delivery->name}'.");
                                         }
@@ -132,9 +135,7 @@ class Module extends \MapasCulturais\Module{
                                         }
                                     }
 
-                                    // Validar campos de receita (sub-campos obrigatórios quando receita = sim)
-                                    if ($registration->opportunity->workplan_registrationReportExpectedRenevue &&
-                                        $delivery->generaterRevenue == 'true') {
+                                    if ($opp->workplan_registrationReportExpectedRenevue && $delivery->generaterRevenue == 'true') {
                                         if (!$delivery->renevueQtd) {
                                             $errors['delivery'][] = i::__("Campo 'Previsão Quantidade' obrigatório na entrega '{$delivery->name}'.");
                                         }
@@ -143,22 +144,12 @@ class Module extends \MapasCulturais\Module{
                                         }
                                     }
 
-                                    // Campos simples de planejamento (integer, currency, text)
-                                    $simple_fields = [
-                                        'artChainLink', 'totalBudget', 'numberOfCities',
-                                        'numberOfNeighborhoods', 'mediationActions',
-                                        'commercialUnits', 'unitPrice', 'segmentDelivery',
-                                        'expectedNumberPeople',
-                                    ];
-
-                                    foreach ($simple_fields as $field) {
+                                    foreach (['artChainLink', 'totalBudget', 'numberOfCities', 'numberOfNeighborhoods', 'mediationActions', 'commercialUnits', 'unitPrice', 'segmentDelivery', 'expectedNumberPeople'] as $field) {
                                         if ($delivery->isMetadataRequired($field) && !self::validateSelectField($delivery, $field)) {
-                                            $label = self::getFieldLabel($field);
-                                            $errors['delivery'][] = i::__("Campo '{$label}' obrigatório na entrega '{$delivery->name}'");
+                                            $errors['delivery'][] = i::__("Campo '" . self::getFieldLabel($field) . "' obrigatório na entrega '{$delivery->name}'");
                                         }
                                     }
 
-                                    // Sub-campos condicionais: só obrigatórios quando o campo gate é 'true'
                                     if ($delivery->hasCommunityCoauthors === 'true' && $delivery->isMetadataRequired('communityCoauthorsDetail') && !$delivery->communityCoauthorsDetail) {
                                         $errors['delivery'][] = i::__("Campo 'Detalhamento do envolvimento de comunidades' obrigatório na entrega '{$delivery->name}'");
                                     }
@@ -169,37 +160,24 @@ class Module extends \MapasCulturais\Module{
                                         $errors['delivery'][] = i::__("Campo 'Descrição de práticas socioambientais' obrigatório na entrega '{$delivery->name}'");
                                     }
 
-                                    // Campos JSON array de planejamento (paidStaffByRole)
-                                    $json_array_fields = ['paidStaffByRole'];
-                                    foreach ($json_array_fields as $field) {
+                                    foreach (['paidStaffByRole'] as $field) {
                                         if ($delivery->isMetadataRequired($field) && !self::validateJsonArrayField($delivery, $field)) {
-                                            $label = self::getFieldLabel($field);
-                                            $errors['delivery'][] = i::__("Campo '{$label}' obrigatório na entrega '{$delivery->name}'");
+                                            $errors['delivery'][] = i::__("Campo '" . self::getFieldLabel($field) . "' obrigatório na entrega '{$delivery->name}'");
                                         }
                                     }
 
-                                    // Campos JSON object de planejamento (teamComposition*)
-                                    $json_object_fields = [
-                                        'teamCompositionGender', 'teamCompositionRace',
-                                    ];
-                                    foreach ($json_object_fields as $field) {
+                                    foreach (['teamCompositionGender', 'teamCompositionRace'] as $field) {
                                         if ($delivery->isMetadataRequired($field) && !self::validateJsonObjectField($delivery, $field)) {
-                                            $label = self::getFieldLabel($field);
-                                            $errors['delivery'][] = i::__("Campo '{$label}' obrigatório na entrega '{$delivery->name}'");
+                                            $errors['delivery'][] = i::__("Campo '" . self::getFieldLabel($field) . "' obrigatório na entrega '{$delivery->name}'");
                                         }
                                     }
 
-                                    // Campos multiselect de planejamento
-                                    $multiselect_fields = [
-                                        'revenueType', 'communicationChannels', 'documentationTypes',
-                                    ];
-                                    foreach ($multiselect_fields as $field) {
+                                    foreach (['revenueType', 'communicationChannels', 'documentationTypes'] as $field) {
                                         if ($delivery->isMetadataRequired($field) && !self::validateMultiselectField($delivery, $field)) {
-                                            $label = self::getFieldLabel($field);
-                                            $errors['delivery'][] = i::__("Campo '{$label}' obrigatório na entrega '{$delivery->name}'");
+                                            $errors['delivery'][] = i::__("Campo '" . self::getFieldLabel($field) . "' obrigatório na entrega '{$delivery->name}'");
                                         }
                                     }
-                                    // Sub-campos multiselect condicionais ao gate
+
                                     if ($delivery->hasAccessibilityPlan === 'true' && $delivery->isMetadataRequired('expectedAccessibilityMeasures') && !self::validateMultiselectField($delivery, 'expectedAccessibilityMeasures')) {
                                         $errors['delivery'][] = i::__("Campo 'Medidas de acessibilidade previstas' obrigatório na entrega '{$delivery->name}'");
                                     }
@@ -207,85 +185,92 @@ class Module extends \MapasCulturais\Module{
                                         $errors['delivery'][] = i::__("Campo 'Tipos de experimentação/inovação' obrigatório na entrega '{$delivery->name}'");
                                     }
 
-                                    // Campos gate: obrigatórios (sim/não) quando o bloco Inform está ativo
-                                    // Não têm flag Require separado — o proponente deve sempre responder ao campo gate
-                                    if ($registration->opportunity->workplan_deliveryInformCommunityCoauthors && !$delivery->hasCommunityCoauthors) {
+                                    if ($opp->workplan_deliveryInformCommunityCoauthors && !$delivery->hasCommunityCoauthors) {
                                         $errors['delivery'][] = i::__("Campo 'Envolvimento de comunidades como coautores' obrigatório na entrega '{$delivery->name}'");
                                     }
-                                    if ($registration->opportunity->workplan_deliveryInformTransInclusion && !$delivery->hasTransInclusionStrategy) {
+                                    if ($opp->workplan_deliveryInformTransInclusion && !$delivery->hasTransInclusionStrategy) {
                                         $errors['delivery'][] = i::__("Campo 'Estratégia de inclusão Trans/Travestis' obrigatório na entrega '{$delivery->name}'");
                                     }
-                                    if ($registration->opportunity->workplan_deliveryInformAccessibilityPlan && !$delivery->hasAccessibilityPlan) {
+                                    if ($opp->workplan_deliveryInformAccessibilityPlan && !$delivery->hasAccessibilityPlan) {
                                         $errors['delivery'][] = i::__("Campo 'Plano de acessibilidade' obrigatório na entrega '{$delivery->name}'");
                                     }
-                                    if ($registration->opportunity->workplan_deliveryInformEnvironmentalPractices && !$delivery->hasEnvironmentalPractices) {
+                                    if ($opp->workplan_deliveryInformEnvironmentalPractices && !$delivery->hasEnvironmentalPractices) {
                                         $errors['delivery'][] = i::__("Campo 'Práticas socioambientais' obrigatório na entrega '{$delivery->name}'");
                                     }
-                                    if ($registration->opportunity->workplan_deliveryInformPressStrategy && $registration->opportunity->workplan_deliveryRequireHasPressStrategy && !$delivery->hasPressStrategy) {
+                                    if ($opp->workplan_deliveryInformPressStrategy && $opp->workplan_deliveryRequireHasPressStrategy && !$delivery->hasPressStrategy) {
                                         $errors['delivery'][] = i::__("Campo 'Estratégias de comunicação' obrigatório na entrega '{$delivery->name}'");
                                     }
-                                    if ($registration->opportunity->workplan_deliveryInformInnovation && !$delivery->hasInnovationAction) {
+                                    if ($opp->workplan_deliveryInformInnovation && !$delivery->hasInnovationAction) {
                                         $errors['delivery'][] = i::__("Campo 'Previsão de ação de experimentação/inovação' obrigatório na entrega '{$delivery->name}'");
                                     }
+                                }
+                            }
+                        }
+                    }
 
-                                    $monitoring_simple_fields = [
-                                        'availabilityType',
-                                        'participantProfile',
-                                        'numberOfParticipants',
-                                        'executedRevenue',
-                                        'executedNumberOfCities',
-                                        'executedNumberOfNeighborhoods',
-                                        'executedMediationActions',
-                                        'executedCommercialUnits',
-                                        'executedUnitPrice',
-                                        'executedArtChainLink',
-                                        'executedSegmentDelivery',
-                                        'executedCommunityCoauthorsDetail',
-                                        'executedTransInclusionActions',
-                                        'executedEnvironmentalPracticesDescription',
-                                    ];
-                                    foreach ($monitoring_simple_fields as $field) {
+                    $errorsResult = [...$errors];
+                    return;
+                }
+
+                // ── Fase de monitoramento ──────────────────────────────────────────────────
+                if ($registration->opportunity->isReportingPhase) {
+                    $firstPhase = $registration->firstPhase;
+                    if (!$firstPhase || !$firstPhase->opportunity->enableWorkplan) {
+                        return;
+                    }
+
+                    $workplan = $app->repo(Workplan::class)->findOneBy(['registration' => $firstPhase->id]);
+                    if (!$workplan) {
+                        return;
+                    }
+
+                    $opp = $firstPhase->opportunity;
+
+                    if (is_iterable($workplan->goals)) {
+                        foreach ($workplan->goals as $goal) {
+                            if (is_iterable($goal->deliveries)) {
+                                foreach ($goal->deliveries as $delivery) {
+                                    $addMonitoringDeliveryError = function (string $field, string $message) use ($appendStructuredError, $appendUniqueError, $delivery) {
+                                        $appendUniqueError('delivery', $message);
+                                        $appendStructuredError('deliveries', $delivery->id, $field, [$message]);
+                                    };
+
+                                    foreach (['availabilityType', 'participantProfile', 'numberOfParticipants', 'executedRevenue', 'executedMonthInitial', 'executedMonthEnd', 'executedTotalBudget', 'executedNumberOfCities', 'executedNumberOfNeighborhoods', 'executedMediationActions', 'executedCommercialUnits', 'executedUnitPrice', 'executedArtChainLink', 'executedSegmentDelivery', 'executedCommunicationStrategies', 'executedCommunityCoauthorsDetail', 'executedTransInclusionActions', 'executedEnvironmentalPracticesDescription'] as $field) {
                                         if ($delivery->isMetadataRequired($field) && !self::validateSelectField($delivery, $field)) {
-                                            $label = self::getFieldLabel($field);
-                                            $errors['delivery'][] = i::__("Campo '{$label}' obrigatório na entrega '{$delivery->name}'");
+                                            $addMonitoringDeliveryError($field, i::__("Campo '" . self::getFieldLabel($field) . "' obrigatório na entrega '{$delivery->name}'"));
                                         }
                                     }
 
-                                    $monitoring_json_array_fields = ['executedPaidStaffByRole'];
-                                    foreach ($monitoring_json_array_fields as $field) {
+                                    foreach (['executedPaidStaffByRole'] as $field) {
                                         if ($delivery->isMetadataRequired($field) && !self::validateJsonArrayField($delivery, $field)) {
-                                            $label = self::getFieldLabel($field);
-                                            $errors['delivery'][] = i::__("Campo '{$label}' obrigatório na entrega '{$delivery->name}'");
+                                            $addMonitoringDeliveryError($field, i::__("Campo '" . self::getFieldLabel($field) . "' obrigatório na entrega '{$delivery->name}'"));
                                         }
                                     }
 
-                                    $monitoring_json_object_fields = [
-                                        'executedTeamCompositionGender',
-                                        'executedTeamCompositionRace',
-                                    ];
-                                    foreach ($monitoring_json_object_fields as $field) {
+                                    foreach (['executedTeamCompositionGender', 'executedTeamCompositionRace'] as $field) {
                                         if ($delivery->isMetadataRequired($field) && !self::validateJsonObjectField($delivery, $field)) {
-                                            $label = self::getFieldLabel($field);
-                                            $errors['delivery'][] = i::__("Campo '{$label}' obrigatório na entrega '{$delivery->name}'");
+                                            $addMonitoringDeliveryError($field, i::__("Campo '" . self::getFieldLabel($field) . "' obrigatório na entrega '{$delivery->name}'"));
                                         }
                                     }
 
-                                    $monitoring_multiselect_fields = [
-                                        'accessibilityMeasures',
-                                        'priorityAudience',
-                                        'executedCommunicationChannels',
-                                        'executedRevenueType',
-                                        'executedExpectedAccessibilityMeasures',
-                                        'executedInnovationTypes',
-                                        'executedDocumentationTypes',
-                                    ];
-                                    foreach ($monitoring_multiselect_fields as $field) {
+                                    foreach (['accessibilityMeasures', 'priorityAudience', 'executedCommunicationChannels', 'executedRevenueType', 'executedExpectedAccessibilityMeasures', 'executedInnovationTypes', 'executedDocumentationTypes'] as $field) {
                                         if ($delivery->isMetadataRequired($field) && !self::validateMultiselectField($delivery, $field)) {
-                                            $label = self::getFieldLabel($field);
-                                            $errors['delivery'][] = i::__("Campo '{$label}' obrigatório na entrega '{$delivery->name}'");
+                                            $addMonitoringDeliveryError($field, i::__("Campo '" . self::getFieldLabel($field) . "' obrigatório na entrega '{$delivery->name}'"));
                                         }
                                     }
 
+                                    foreach ([
+                                        'executedHasCommunityCoauthors'     => ['inform' => 'workplan_monitoringInformCommunityCoauthors',    'require' => 'workplan_monitoringRequireHasCommunityCoauthors'],
+                                        'executedHasTransInclusionStrategy'  => ['inform' => 'workplan_monitoringInformTransInclusion',         'require' => 'workplan_monitoringRequireHasTransInclusionStrategy'],
+                                        'executedHasAccessibilityPlan'       => ['inform' => 'workplan_monitoringInformAccessibilityPlan',      'require' => 'workplan_monitoringRequireHasAccessibilityPlan'],
+                                        'executedHasEnvironmentalPractices'  => ['inform' => 'workplan_monitoringInformEnvironmentalPractices', 'require' => 'workplan_monitoringRequireHasEnvironmentalPractices'],
+                                        'executedHasPressStrategy'           => ['inform' => 'workplan_monitoringInformPressStrategy',          'require' => 'workplan_monitoringRequireHasPressStrategy'],
+                                        'executedHasInnovationAction'        => ['inform' => 'workplan_monitoringInformInnovation',             'require' => 'workplan_monitoringRequireHasInnovationAction'],
+                                    ] as $field => $config) {
+                                        if (($opp->{$config['inform']} ?? false) && ($opp->{$config['require']} ?? false) && !self::validateSelectField($delivery, $field)) {
+                                            $addMonitoringDeliveryError($field, i::__("Campo '" . self::getFieldLabel($field) . "' obrigatório na entrega '{$delivery->name}'"));
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -639,6 +624,18 @@ class Module extends \MapasCulturais\Module{
             'default_value' => false
         ]);
 
+        $this->registerOpportunityMetadata('workplan_monitoringInformExecutedDeliveryPeriod', [
+            'label' => i::__('Informar período executado de realização da entrega'),
+            'type' => 'boolean',
+            'default_value' => false
+        ]);
+
+        $this->registerOpportunityMetadata('workplan_monitoringInformExecutedTotalBudget', [
+            'label' => i::__('Informar orçamento total executado da entrega'),
+            'type' => 'boolean',
+            'default_value' => false
+        ]);
+
         $this->registerOpportunityMetadata('workplan_monitoringInformCommunityCoauthors', [
             'label' => i::__('Informar envolvimento executado de comunidades/coletivos como coautores/coexecutores'),
             'type' => 'boolean',
@@ -665,6 +662,12 @@ class Module extends \MapasCulturais\Module{
 
         $this->registerOpportunityMetadata('workplan_monitoringInformPressStrategy', [
             'label' => i::__('Informar estratégia executada de relacionamento com imprensa'),
+            'type' => 'boolean',
+            'default_value' => false
+        ]);
+
+        $this->registerOpportunityMetadata('workplan_monitoringInformExecutedCommunicationStrategies', [
+            'label' => i::__('Informar estratégias de comunicação executadas'),
             'type' => 'boolean',
             'default_value' => false
         ]);
@@ -851,6 +854,18 @@ class Module extends \MapasCulturais\Module{
             'default_value' => false
         ]);
 
+        $this->registerOpportunityMetadata('workplan_monitoringRequireExecutedDeliveryPeriod', [
+            'label' => i::__('Período executado da entrega é obrigatório'),
+            'type' => 'boolean',
+            'default_value' => false
+        ]);
+
+        $this->registerOpportunityMetadata('workplan_monitoringRequireExecutedTotalBudget', [
+            'label' => i::__('Orçamento total executado é obrigatório'),
+            'type' => 'boolean',
+            'default_value' => false
+        ]);
+
         // MONITORAMENTO - Novos campos executados
         $this->registerOpportunityMetadata('workplan_monitoringRequireNumberOfCities', [
             'label' => i::__('Número de municípios executados é obrigatório'),
@@ -912,8 +927,20 @@ class Module extends \MapasCulturais\Module{
             'default_value' => false
         ]);
 
+        $this->registerOpportunityMetadata('workplan_monitoringRequireHasCommunityCoauthors', [
+            'label' => i::__('Coautoria/coexecução executada com comunidades/coletivos é obrigatória'),
+            'type' => 'boolean',
+            'default_value' => false
+        ]);
+
         $this->registerOpportunityMetadata('workplan_monitoringRequireCommunityCoauthorsDetail', [
             'label' => i::__('Detalhamento de coautoria/coexecução executada é obrigatório'),
+            'type' => 'boolean',
+            'default_value' => false
+        ]);
+
+        $this->registerOpportunityMetadata('workplan_monitoringRequireHasTransInclusionStrategy', [
+            'label' => i::__('Estratégias executadas de inclusão Trans e Travestis são obrigatórias'),
             'type' => 'boolean',
             'default_value' => false
         ]);
@@ -924,14 +951,44 @@ class Module extends \MapasCulturais\Module{
             'default_value' => false
         ]);
 
+        $this->registerOpportunityMetadata('workplan_monitoringRequireHasAccessibilityPlan', [
+            'label' => i::__('Plano de acessibilidade executado é obrigatório'),
+            'type' => 'boolean',
+            'default_value' => false
+        ]);
+
         $this->registerOpportunityMetadata('workplan_monitoringRequireExpectedAccessibilityMeasures', [
             'label' => i::__('Medidas de acessibilidade executadas são obrigatórias'),
             'type' => 'boolean',
             'default_value' => false
         ]);
 
+        $this->registerOpportunityMetadata('workplan_monitoringRequireHasEnvironmentalPractices', [
+            'label' => i::__('Práticas socioambientais executadas são obrigatórias'),
+            'type' => 'boolean',
+            'default_value' => false
+        ]);
+
         $this->registerOpportunityMetadata('workplan_monitoringRequireEnvironmentalPracticesDescription', [
             'label' => i::__('Práticas socioambientais executadas são obrigatórias'),
+            'type' => 'boolean',
+            'default_value' => false
+        ]);
+
+        $this->registerOpportunityMetadata('workplan_monitoringRequireHasPressStrategy', [
+            'label' => i::__('Estratégia executada de relacionamento com imprensa é obrigatória'),
+            'type' => 'boolean',
+            'default_value' => false
+        ]);
+
+        $this->registerOpportunityMetadata('workplan_monitoringRequireExecutedCommunicationStrategies', [
+            'label' => i::__('Estratégias de comunicação executadas são obrigatórias'),
+            'type' => 'boolean',
+            'default_value' => false
+        ]);
+
+        $this->registerOpportunityMetadata('workplan_monitoringRequireHasInnovationAction', [
+            'label' => i::__('Ação executada de experimentação/inovação é obrigatória'),
             'type' => 'boolean',
             'default_value' => false
         ]);
@@ -1724,6 +1781,36 @@ class Module extends \MapasCulturais\Module{
         ]);
         $app->registerMetadata($communicationChannels, Delivery::class);
 
+        $executedMonthInitial = new Metadata('executedMonthInitial', [
+            'label' => \MapasCulturais\i::__('Mês inicial executado da entrega'),
+            'type' => 'integer',
+            'validations' => [
+                'v::intVal()->min(1)' => \MapasCulturais\i::__('Deve ser um número maior ou igual a um')
+            ]
+        ]);
+        $app->registerMetadata($executedMonthInitial, Delivery::class);
+
+        $executedMonthEnd = new Metadata('executedMonthEnd', [
+            'label' => \MapasCulturais\i::__('Mês final executado da entrega'),
+            'type' => 'integer',
+            'validations' => [
+                'v::intVal()->min(1)' => \MapasCulturais\i::__('Deve ser um número maior ou igual a um')
+            ]
+        ]);
+        $app->registerMetadata($executedMonthEnd, Delivery::class);
+
+        $executedTotalBudget = new Metadata('executedTotalBudget', [
+            'label' => \MapasCulturais\i::__('Qual o orçamento total executado da atividade?'),
+            'type' => 'currency'
+        ]);
+        $app->registerMetadata($executedTotalBudget, Delivery::class);
+
+        $executedCommunicationStrategies = new Metadata('executedCommunicationStrategies', [
+            'label' => \MapasCulturais\i::__('Quais estratégias de comunicação foram efetivamente executadas?'),
+            'type' => 'text'
+        ]);
+        $app->registerMetadata($executedCommunicationStrategies, Delivery::class);
+
         // Experimentação/inovação (boolean)
         $hasInnovationAction = new Metadata('hasInnovationAction', [
             'label' => \MapasCulturais\i::__('A atividade prevê ao menos uma ação de experimentação/inovação?'),
@@ -1851,6 +1938,8 @@ class Module extends \MapasCulturais\Module{
             'hasInnovationAction' => 'Experimentação/inovação',
             'segmentDelivery' => 'Segmento artístico-cultural',
             'expectedNumberPeople' => 'Número previsto de pessoas',
+            'executionDetail' => 'Detalhamento da execução da meta',
+            'status' => 'Status',
             // Monitoramento
             'executedNumberOfCities' => 'Municípios executados',
             'executedNumberOfNeighborhoods' => 'Bairros executados',
@@ -1867,7 +1956,11 @@ class Module extends \MapasCulturais\Module{
             'priorityAudience' => 'Territórios prioritários',
             'executedRevenue' => 'Receita executada',
             'executedRevenueType' => 'Tipo de receita executada',
+            'executedMonthInitial' => 'Mês inicial executado',
+            'executedMonthEnd' => 'Mês final executado',
+            'executedTotalBudget' => 'Orçamento total executado',
             'executedSegmentDelivery' => 'Segmento artístico-cultural executado',
+            'executedCommunicationStrategies' => 'Estratégias de comunicação executadas',
             'executedHasCommunityCoauthors' => 'Envolvimento executado de comunidades',
             'executedCommunityCoauthorsDetail' => 'Detalhamento executado de coautoria',
             'executedHasTransInclusionStrategy' => 'Estratégia executada de inclusão Trans/Travestis',
