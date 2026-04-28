@@ -24,6 +24,9 @@ app.component('registration-workplan-form-delivery', {
         return { vid };
     },
     computed: {
+        deliveryDescriptions () {
+            return $DESCRIPTIONS.delivery ?? $MAPAS.EntitiesDescription.workplan?.goal?.delivery ?? {};
+        },
         accessibilityMeasures: {
             get () {
                 if (!this.proxy.accessibilityMeasures) {
@@ -38,13 +41,13 @@ app.component('registration-workplan-form-delivery', {
             }
         },
         accessibilityOptions () {
-            return Vue.markRaw($DESCRIPTIONS.delivery.accessibilityMeasures.options);
+            return Vue.markRaw(this.deliveryDescriptions.accessibilityMeasures?.options ?? {});
         },
         audienceOptions () {
-            return Vue.markRaw($DESCRIPTIONS.delivery.priorityAudience.options);
+            return Vue.markRaw(this.deliveryDescriptions.priorityAudience?.options ?? {});
         },
         availabilityOptions () {
-            return Vue.markRaw($DESCRIPTIONS.delivery.availabilityType.options);
+            return Vue.markRaw(this.deliveryDescriptions.availabilityType?.options ?? {});
         },
         deliveriesLabel () {
             const opportunity = this.registration.opportunity.parent ?? this.registration.opportunity;
@@ -80,6 +83,30 @@ app.component('registration-workplan-form-delivery', {
         opportunity () {
             return this.registration.opportunity.parent ?? this.registration.opportunity;
         },
+        plannedCommunicationChannels () {
+            return this.normalizeArray(this.delivery.communicationChannels);
+        },
+        plannedDocumentationTypes () {
+            return this.normalizeArray(this.delivery.documentationTypes);
+        },
+        plannedExpectedAccessibilityMeasures () {
+            return this.normalizeArray(this.delivery.expectedAccessibilityMeasures);
+        },
+        plannedInnovationTypes () {
+            return this.normalizeArray(this.delivery.innovationTypes);
+        },
+        plannedPaidStaffByRole () {
+            return this.normalizeArray(this.delivery.paidStaffByRole);
+        },
+        plannedRevenueType () {
+            return this.normalizeArray(this.delivery.revenueType);
+        },
+        plannedTeamCompositionGender () {
+            return this.normalizeObject(this.delivery.teamCompositionGender);
+        },
+        plannedTeamCompositionRace () {
+            return this.normalizeObject(this.delivery.teamCompositionRace);
+        },
         priorityAudience: {
             get () {
                 if (!this.proxy.priorityAudience) {
@@ -109,19 +136,19 @@ app.component('registration-workplan-form-delivery', {
 
         // ── Novos campos executados ──────────────────────────────────────
         artChainLinkOptions () {
-            return Vue.markRaw($DESCRIPTIONS.delivery.artChainLink?.options ?? []);
+            return Vue.markRaw(this.deliveryDescriptions.artChainLink?.options ?? []);
         },
         booleanOptions () {
-            return Vue.markRaw($DESCRIPTIONS.delivery.hasCommunityCoauthors?.options ?? {
+            return Vue.markRaw(this.deliveryDescriptions.hasCommunityCoauthors?.options ?? {
                 true: 'Sim',
                 false: 'Não',
             });
         },
         communicationChannelsOptions () {
-            return Vue.markRaw($DESCRIPTIONS.delivery.communicationChannels?.options ?? {});
+            return Vue.markRaw(this.deliveryDescriptions.communicationChannels?.options ?? {});
         },
         documentationTypeOptions () {
-            return Vue.markRaw($DESCRIPTIONS.delivery.documentationTypes?.options ?? {});
+            return Vue.markRaw(this.deliveryDescriptions.documentationTypes?.options ?? {});
         },
         executedCommunicationChannels: {
             get () {
@@ -243,24 +270,46 @@ app.component('registration-workplan-form-delivery', {
             },
         },
         paidStaffRoleOptions () {
-            return Vue.markRaw($DESCRIPTIONS.delivery.paidStaffByRole?.options ?? []);
+            return Vue.markRaw(this.deliveryDescriptions.paidStaffByRole?.options ?? []);
         },
         revenueTypeOptions () {
-            return Vue.markRaw($DESCRIPTIONS.delivery.revenueType?.options ?? {});
+            return Vue.markRaw(this.deliveryDescriptions.revenueType?.options ?? {});
         },
         segmentDeliveryOptions () {
-            return Vue.markRaw($DESCRIPTIONS.delivery.segmentDelivery?.options ?? {});
+            return Vue.markRaw(this.deliveryDescriptions.segmentDelivery?.options ?? {});
         },
         accessibilityPlanOptions () {
-            return Vue.markRaw($DESCRIPTIONS.delivery.expectedAccessibilityMeasures?.options ?? {});
+            return Vue.markRaw(this.deliveryDescriptions.expectedAccessibilityMeasures?.options ?? {});
         },
         innovationTypeOptions () {
-            return Vue.markRaw($DESCRIPTIONS.delivery.innovationTypes?.options ?? {});
+            return Vue.markRaw(this.deliveryDescriptions.innovationTypes?.options ?? {});
         },
     },
     methods: {
         convertToCurrency(field) {
             return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(field));
+        },
+        normalizeArray(value) {
+            if (!value) return [];
+            if (typeof value === 'string') {
+                try {
+                    value = JSON.parse(value);
+                } catch (e) {
+                    return [];
+                }
+            }
+            return Array.isArray(value) ? value : [];
+        },
+        normalizeObject(value) {
+            if (!value) return null;
+            if (typeof value === 'string') {
+                try {
+                    value = JSON.parse(value);
+                } catch (e) {
+                    return null;
+                }
+            }
+            return value && typeof value === 'object' && !Array.isArray(value) ? value : null;
         },
         toggleExecutedCommunicationChannel (item) {
             const idx = this.executedCommunicationChannels.indexOf(item);
