@@ -8,6 +8,7 @@ return [
         'SpamDetector',
         'MapasBlame',
         'AldirBlanc',
+        'RCV',
         'Metabase' => [
             'namespace' => 'Metabase',
             'config' => [
