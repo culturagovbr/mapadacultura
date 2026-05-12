@@ -28,6 +28,9 @@ $this->import('
             </template>
         </select-entity>
 
+        <?php $this->applyComponentHook('select-entity', 'begin'); ?>
+        <?php $this->applyComponentHook('select-entity', 'end'); ?>
+
         <div v-if="showReviewers" class="opportunity-evaluation-committee__expand-button">
             <button class="button button--icon button--primary" @click="expandAllToggles()">
                 <template v-if="allExpanded">
