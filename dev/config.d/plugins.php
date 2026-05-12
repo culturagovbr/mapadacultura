@@ -9,6 +9,7 @@ return [
 		'MapasBlame',
 		'AldirBlanc',
 		'RCV',
+		'ValuersManagement',
 		'Metabase' => [
 			'namespace' => 'Metabase',
 			'config' => [
