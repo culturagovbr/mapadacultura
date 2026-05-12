@@ -34,3 +34,6 @@
 [submodule "src/themes/CulturaViva"]
 	path = src/themes/CulturaViva
 	url = https://github.com/culturagovbr/theme-CulturaViva.git
+[submodule "src/plugins/ValuersManagement"]
+	path = src/plugins/ValuersManagement
+	url = https://github.com/mapasculturais/plugin-ValuersManagement.git
