@@ -63,10 +63,7 @@ app.component('technical-evaluation-form', {
             let result = 0;
             for (let sectionIndex in this.sections) {
                 for (let criterion of this.sections[sectionIndex].criteria) {
-                    const value = this.formData.data[criterion.id];
-                    if (value !== null && value !== undefined) {
-                        result += parseFloat(value);
-                    }
+                    result += this.weightedCriterionScore(criterion);
                 }
             }
             return parseFloat(result.toFixed(2));
@@ -76,14 +73,32 @@ app.component('technical-evaluation-form', {
             for (let sectionKey in this.sections) {
                 const section = this.sections[sectionKey];
                 if (section.criteria && Array.isArray(section.criteria)) {
-                    total += section.criteria.reduce((acc, criterion) => parseFloat(acc) + parseFloat((criterion.max || 0)), 0);
+                    total +=  section.criteria.reduce((acc, criterion) => {
+                        return acc + (this.toNumber(criterion.max) * this.toNumber(criterion.weight));
+                    }, 0);
                 }
             }
-            return total;
+            return parseFloat(total.toFixed(2));
         }
     },
 
     methods: {
+        toNumber(value) {
+            const number = Number(value);
+
+            return Number.isFinite(number) ? number : 0;
+        },
+
+        weightedCriterionScore(criterion) {
+            const value = this.formData.data[criterion.id];
+
+            if (value === null || value === undefined || value === '') {
+                return 0;
+            }
+
+            return this.toNumber(value) * this.toNumber(criterion.weight);
+        },
+
         handleInput(sectionIndex, criterionId) {
             let value = this.formData.data[criterionId];
             const max = this.sections[sectionIndex].criteria.find(criterion => criterion.id === criterionId).max;
@@ -105,10 +120,7 @@ app.component('technical-evaluation-form', {
             let subtotal = 0;
             const section = this.sections[sectionIndex];
             for (let criterion of section.criteria) {
-                const value = this.formData.data[criterion.id];
-                if (value !== null && value !== undefined) {
-                    subtotal += parseFloat(value);
-                }
+                subtotal += this.weightedCriterionScore(criterion);
             }
 
             return parseFloat(subtotal.toFixed(2));
