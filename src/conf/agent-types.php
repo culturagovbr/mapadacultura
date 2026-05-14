@@ -63,9 +63,6 @@ return array(
                 MapasCulturais\i::__('De 20.001,00 a 100.000,00'),
                 MapasCulturais\i::__('Acima de 100.000,00'),
             ),
-            'validations' => array(
-                'required' => \MapasCulturais\i::__('O campo Renda é obrigatório.')
-            ),
             'available_for_opportunities' => true,
         ),
 
