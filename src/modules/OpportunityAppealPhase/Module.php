@@ -44,6 +44,7 @@ class Module extends \MapasCulturais\Module {
             $appeal_phase->registrationProponentTypes = $opportunity->registrationProponentTypes;
             $appeal_phase->isDataCollection = true;
             $appeal_phase->isAppealPhase = true;
+            $appeal_phase->showPreviousPhaseEvaluationDetails = true;
             $appeal_phase->save(true);
             
             $opportunity->appealPhase = $appeal_phase;
@@ -219,6 +220,12 @@ class Module extends \MapasCulturais\Module {
         $this->registerOpportunityMetadata('isAppealPhase', [
             'label' => i::__('Indica se é uma fase de recurso'),
             'type'  => 'boolean'
+        ]);
+
+        $this->registerOpportunityMetadata('showPreviousPhaseEvaluationDetails', [
+            'label' => i::__('Exibir detalhamento da avaliação anterior para avaliadores do recurso'),
+            'type'  => 'boolean',
+            'default' => true,
         ]);
 
         $this->registerEvauationMethodConfigurationMetadata('appealPhase', [
