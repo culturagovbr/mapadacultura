@@ -28,16 +28,24 @@ if($class == Registration::class) {
     $result = [];
     foreach($registrations as $reg) {
         $em = $reg->evaluationMethod;
+        $emc = $reg->opportunity->evaluationMethodConfiguration;
+
+        // Verifica se o usuário pode ver os nomes dos avaliadores
+        $can_view_valuer_names = $reg->opportunity->canUser('@control') ||
+                                  $emc->publishValuerNames;
+
         $data = [
-            'consolidatedDetails' => $em->getConsolidatedDetails($reg),
+            'consolidatedDetails' => $em->shouldDisplayEvaluationResults($reg) ? $em->getConsolidatedDetails($reg) : [],
             'evaluationsDetails' => []
         ];
 
         $evaluations = $reg->sentEvaluations;
     
         foreach ($evaluations as $eval) {
-            $detail = $em->getEvaluationDetails($eval);
-            $detail['valuer'] = $eval->user->profile->simplify('id,name,singleUrl');
+            $detail = $em->shouldDisplayEvaluationResults($reg) ? $em->getEvaluationDetails($eval) : [];
+            if ($can_view_valuer_names){
+                $detail['valuer'] = $eval->user->profile->simplify('id,name,singleUrl');
+            }
             $data['evaluationsDetails'][] = $detail;
         }
 
