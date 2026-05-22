@@ -1577,6 +1577,12 @@ class Module extends \MapasCulturais\Module{
          * é criada para "abrigar" a fase de avaliaçao.
          */
         $app->hook('entity(EvaluationMethodConfiguration).insert:before', function () {
+            // Pula durante duplicação de oportunidade - o duplicador gerencia
+            // explicitamente a atribuição de EvaluationMethodConfigurations às fases
+            if (\MapasCulturais\Controllers\Opportunity::$duplicating ?? false) {
+                return;
+            }
+
             $phase = null;
             $phases = $this->opportunity->allPhases;
 
