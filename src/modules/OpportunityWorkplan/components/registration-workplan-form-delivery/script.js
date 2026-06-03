@@ -105,6 +105,14 @@ app.component('registration-workplan-form-delivery', {
         plannedRevenueType () {
             return this.normalizeArray(this.delivery.revenueType);
         },
+        hasPlannedRevenueInfo () {
+            return [
+                this.delivery.generaterRevenue,
+                this.delivery.renevueQtd,
+                this.delivery.unitValueForecast,
+                this.delivery.totalValueForecast,
+            ].some(value => this.hasValue(value));
+        },
         plannedTeamCompositionGender () {
             return this.normalizeObject(this.delivery.teamCompositionGender);
         },
@@ -297,6 +305,15 @@ app.component('registration-workplan-form-delivery', {
         hasExecutedRaceData () {
             const r = this.executedTeamCompositionRace;
             return Object.values(r).some(v => Number(v) > 0);
+        },
+        hasExecutedRevenue () {
+            const value = this.proxy.executedRevenue;
+
+            if (value && typeof value === 'object') {
+                return this.hasValue(value.scalar);
+            }
+
+            return this.hasValue(value);
         },
         hasExecutedRevenueType () {
             return this.executedRevenueType.length > 0;
