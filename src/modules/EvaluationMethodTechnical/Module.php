@@ -948,6 +948,52 @@ class Module extends \MapasCulturais\EvaluationMethod {
         }
     }
 
+    private function getPointRewardRuleMatch($rule, $registration_value): array
+    {
+        $result = ['applied' => false, 'value' => null];
+
+        if(isset($rule->eligibleValues)) {
+            $eligible_values = is_object($rule->eligibleValues)
+                ? json_decode(json_encode($rule->eligibleValues), true)
+                : (array) $rule->eligibleValues;
+
+            if(array_keys($eligible_values) !== range(0, count($eligible_values) - 1)) {
+                $eligible_values = array_keys($eligible_values);
+            }
+
+            $eligible_values = array_map(function($value) {
+                return is_string($value) ? explode(':', $value, 2)[0] : $value;
+            }, $eligible_values);
+
+            $registration_values = is_array($registration_value) ? $registration_value : [$registration_value];
+            $matched_values = array_values(array_intersect($registration_values, $eligible_values));
+
+            if($matched_values) {
+                return ['applied' => true, 'value' => $matched_values[0]];
+            }
+
+            return $result;
+        }
+
+        if(isset($rule->value) && (is_object($rule->value) || is_array($rule->value))) {
+            foreach($rule->value as $key => $value) {
+                if(is_array($registration_value)) {
+                    if(in_array($key, $registration_value) && filter_var($value, FILTER_VALIDATE_BOOL)) {
+                        $result = ['applied' => true, 'value' => $key];
+                    }
+
+                } else if($registration_value == $key && filter_var($value, FILTER_VALIDATE_BOOL)) {
+                    $result = ['applied' => true, 'value' => $key];
+                }
+            }
+
+        } else if(isset($rule->value) && filter_var($registration_value, FILTER_VALIDATE_BOOL) == filter_var($rule->value, FILTER_VALIDATE_BOOL)) {
+            $result = ['applied' => true, 'value' => $registration_value];
+        }
+
+        return $result;
+    }
+
     public function applyPointReward($result, \MapasCulturais\Entities\Registration $registration)
     {
         $app = App::i();
@@ -975,7 +1021,6 @@ class Module extends \MapasCulturais\EvaluationMethod {
             }
             
             $fieldName = "field_".$rules->field;
-            $applied = false;
             $field_conf = $metadata[$fieldName]->config['registrationFieldConfiguration'];
 
             if($field_conf->categories && !in_array($registration->category, $field_conf->categories)){
@@ -989,32 +1034,9 @@ class Module extends \MapasCulturais\EvaluationMethod {
                 }
             }
 
-            if(is_object($rules->value) || is_array($rules->value)){
-
-                foreach($rules->value as $key => $value){
-                    if(is_array($registration->$fieldName)){
-                        if(in_array($key, $registration->$fieldName) && filter_var($value, FILTER_VALIDATE_BOOL)){
-                            $_value = $key;
-                            $applied = true;
-                            continue;
-                        }
-
-                    }else{
-                        if($registration->$fieldName == $key && filter_var($value, FILTER_VALIDATE_BOOL)){
-                            $_value = $key;
-                            $applied = true;
-                            continue;
-                        }
-                    }
-                }
-            }else{
-                if(filter_var($registration->$fieldName, FILTER_VALIDATE_BOOL) == filter_var($rules->value, FILTER_VALIDATE_BOOL)){
-                    $applied = true;
-                    $_value = $registration->$fieldName;
-                }
-            }
+            $match = $this->getPointRewardRuleMatch($rules, $registration->$fieldName);
         
-            if($applied){
+            if($match['applied']){
                 $totalPercent += $rules->fieldPercent;
                 $field = $app->repo('RegistrationFieldConfiguration')->find($rules->field);
                 $appliedPolicies[] = [
@@ -1023,7 +1045,7 @@ class Module extends \MapasCulturais\EvaluationMethod {
                         'id' =>$rules->field
                     ],
                     'percentage' => $rules->fieldPercent,
-                    'value' => $_value,
+                    'value' => $match['value'],
                 ];
                 continue;
             }
