@@ -9,6 +9,10 @@ app.component('registration-workplan-form-delivery', {
             type: Object,
             required: true,
         },
+        goal: {
+            type: Object,
+            required: true,
+        },
         registration: {
             type: Entity,
             required: true,
@@ -100,6 +104,14 @@ app.component('registration-workplan-form-delivery', {
         },
         plannedRevenueType () {
             return this.normalizeArray(this.delivery.revenueType);
+        },
+        hasPlannedRevenueInfo () {
+            return [
+                this.delivery.generaterRevenue,
+                this.delivery.renevueQtd,
+                this.delivery.unitValueForecast,
+                this.delivery.totalValueForecast,
+            ].some(value => this.hasValue(value));
         },
         plannedTeamCompositionGender () {
             return this.normalizeObject(this.delivery.teamCompositionGender);
@@ -211,11 +223,25 @@ app.component('registration-workplan-form-delivery', {
                 if (typeof val === 'string') {
                     try { val = JSON.parse(val); } catch (e) { val = null; }
                 }
-                return val && typeof val === 'object' ? val : {
+                if (val && typeof val === 'object') {
+                    if (this.editable && this.proxy.executedTeamCompositionGender !== val) {
+                        this.proxy.executedTeamCompositionGender = val;
+                    }
+
+                    return val;
+                }
+
+                const defaultValue = {
                     cisgenderWoman: 0, cisgenderMan: 0,
                     transgenderWoman: 0, transgenderMan: 0,
                     nonBinary: 0, otherGenderIdentity: 0, preferNotToSay: 0
                 };
+
+                if (this.editable) {
+                    this.proxy.executedTeamCompositionGender = defaultValue;
+                }
+
+                return defaultValue;
             },
             set (value) {
                 this.proxy.executedTeamCompositionGender = value;
@@ -227,10 +253,24 @@ app.component('registration-workplan-form-delivery', {
                 if (typeof val === 'string') {
                     try { val = JSON.parse(val); } catch (e) { val = null; }
                 }
-                return val && typeof val === 'object' ? val : {
+                if (val && typeof val === 'object') {
+                    if (this.editable && this.proxy.executedTeamCompositionRace !== val) {
+                        this.proxy.executedTeamCompositionRace = val;
+                    }
+
+                    return val;
+                }
+
+                const defaultValue = {
                     white: 0, black: 0, brown: 0,
                     indigenous: 0, asian: 0, notDeclared: 0
                 };
+
+                if (this.editable) {
+                    this.proxy.executedTeamCompositionRace = defaultValue;
+                }
+
+                return defaultValue;
             },
             set (value) {
                 this.proxy.executedTeamCompositionRace = value;
@@ -243,6 +283,19 @@ app.component('registration-workplan-form-delivery', {
         hasExecutedDocumentationTypes () {
             return this.executedDocumentationTypes.length > 0;
         },
+        executedMonthInitialOptions () {
+            return this.range(this.goalMonthInitial, this.goalMonthEnd);
+        },
+        executedMonthEndOptions () {
+            const start = parseInt(this.proxy.executedMonthInitial) || this.goalMonthInitial;
+            return this.range(start, this.goalMonthEnd);
+        },
+        goalMonthInitial () {
+            return parseInt(this.goal.monthInitial) || parseInt(this.delivery.monthInitial) || 1;
+        },
+        goalMonthEnd () {
+            return parseInt(this.goal.monthEnd) || parseInt(this.delivery.monthEnd) || this.goalMonthInitial;
+        },
         hasExecutedExpectedAccessibilityMeasures () {
             return this.executedExpectedAccessibilityMeasures.length > 0;
         },
@@ -252,6 +305,15 @@ app.component('registration-workplan-form-delivery', {
         hasExecutedRaceData () {
             const r = this.executedTeamCompositionRace;
             return Object.values(r).some(v => Number(v) > 0);
+        },
+        hasExecutedRevenue () {
+            const value = this.proxy.executedRevenue;
+
+            if (value && typeof value === 'object') {
+                return this.hasValue(value.scalar);
+            }
+
+            return this.hasValue(value);
         },
         hasExecutedRevenueType () {
             return this.executedRevenueType.length > 0;
@@ -289,6 +351,21 @@ app.component('registration-workplan-form-delivery', {
         convertToCurrency(field) {
             return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(field));
         },
+        hasValue(value) {
+            return value !== null && value !== undefined && value !== '';
+        },
+        normalizeExecutedMonthEnd() {
+            if (!this.hasValue(this.proxy.executedMonthEnd)) {
+                return;
+            }
+
+            const monthInitial = parseInt(this.proxy.executedMonthInitial);
+            const monthEnd = parseInt(this.proxy.executedMonthEnd);
+
+            if (monthInitial && monthEnd && monthEnd < monthInitial) {
+                this.proxy.executedMonthEnd = '';
+            }
+        },
         normalizeArray(value) {
             if (!value) return [];
             if (typeof value === 'string') {
@@ -310,6 +387,16 @@ app.component('registration-workplan-form-delivery', {
                 }
             }
             return value && typeof value === 'object' && !Array.isArray(value) ? value : null;
+        },
+        range(start, end) {
+            start = parseInt(start);
+            end = parseInt(end);
+
+            if (!start || !end || start > end) {
+                return [];
+            }
+
+            return Array.from({ length: end - start + 1 }, (_, i) => start + i);
         },
         toggleExecutedCommunicationChannel (item) {
             const idx = this.executedCommunicationChannels.indexOf(item);
