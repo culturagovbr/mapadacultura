@@ -2069,36 +2069,6 @@ class Module extends \MapasCulturais\Module{
         ]);
         $app->registerMetadata($communicationChannels, Delivery::class);
 
-        $executedMonthInitial = new Metadata('executedMonthInitial', [
-            'label' => \MapasCulturais\i::__('Mês inicial executado da entrega'),
-            'type' => 'integer',
-            'validations' => [
-                'v::intVal()->min(1)' => \MapasCulturais\i::__('Deve ser um número maior ou igual a um')
-            ]
-        ]);
-        $app->registerMetadata($executedMonthInitial, Delivery::class);
-
-        $executedMonthEnd = new Metadata('executedMonthEnd', [
-            'label' => \MapasCulturais\i::__('Mês final executado da entrega'),
-            'type' => 'integer',
-            'validations' => [
-                'v::intVal()->min(1)' => \MapasCulturais\i::__('Deve ser um número maior ou igual a um')
-            ]
-        ]);
-        $app->registerMetadata($executedMonthEnd, Delivery::class);
-
-        $executedTotalBudget = new Metadata('executedTotalBudget', [
-            'label' => \MapasCulturais\i::__('Qual o orçamento total executado da atividade?'),
-            'type' => 'currency'
-        ]);
-        $app->registerMetadata($executedTotalBudget, Delivery::class);
-
-        $executedCommunicationStrategies = new Metadata('executedCommunicationStrategies', [
-            'label' => \MapasCulturais\i::__('Quais estratégias de comunicação foram efetivamente executadas?'),
-            'type' => 'text'
-        ]);
-        $app->registerMetadata($executedCommunicationStrategies, Delivery::class);
-
         // Experimentação/inovação (boolean)
         $hasInnovationAction = new Metadata('hasInnovationAction', [
             'label' => \MapasCulturais\i::__('A atividade prevê ao menos uma ação de experimentação/inovação?'),
