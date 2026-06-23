@@ -14,15 +14,39 @@ trait EntityManagerModel {
 
         $this->requireAuthentication();
         $this->entityOpportunity = $this->requestedEntity;
-        $this->entityOpportunityModel = $this->generateModel();
 
-        $this->generateEvaluationMethods();
-        $this->generatePhases();
-        $this->generateMetadata();
-        $this->generateRegistrationFieldsAndFiles($this->entityOpportunity, $this->entityOpportunityModel);
-        $this->generateSealsRelations();
+        // Impede gerar modelo de oportunidade de outro subsite
+        $currentSubsiteId = $app->getCurrentSubsiteId();
+        $opportunitySubsiteId = $this->entityOpportunity->subsite ? $this->entityOpportunity->subsite->id : null;
+        if ($currentSubsiteId !== $opportunitySubsiteId) {
+            $this->errorJson(['message' => 'Não é possível gerar modelo de uma oportunidade de outro subsite.'], 403);
+            return;
+        }
 
-        $this->entityOpportunityModel->save(true);
+        self::$duplicating = true;
+        $app->em->beginTransaction();
+        try {
+            $this->entityOpportunityModel = $this->generateModel();
+
+            $this->generateEvaluationMethods();
+            $this->generatePhases();
+            $this->generateMetadata();
+            $this->generateRegistrationFieldsAndFiles($this->entityOpportunity, $this->entityOpportunityModel);
+            $this->generateSealsRelations();
+
+            // Remapeia referências a fases originais (appealPhase, etc.)
+            $this->modelRemapPhaseReferences();
+
+            $this->entityOpportunityModel->save(true);
+
+            $app->em->commit();
+        } catch (\Exception $e) {
+            $app->em->rollback();
+            self::$duplicating = false;
+            throw $e;
+        } finally {
+            self::$duplicating = false;
+        }
         
         if($this->isAjax()){
             $this->json($this->entityOpportunity);
@@ -37,17 +61,40 @@ trait EntityManagerModel {
         $this->requireAuthentication();
         $this->entityOpportunity = $this->requestedEntity;
 
+        // Impede gerar oportunidade a partir de modelo de outro subsite
+        $currentSubsiteId = $app->getCurrentSubsiteId();
+        $opportunitySubsiteId = $this->entityOpportunity->subsite ? $this->entityOpportunity->subsite->id : null;
+        if ($currentSubsiteId !== $opportunitySubsiteId) {
+            $this->errorJson(['message' => 'Não é possível gerar oportunidade a partir de um modelo de outro subsite.'], 403);
+            return;
+        }
+
         $app->disableAccessControl();
-        $this->entityOpportunityModel = $this->generateOpportunity();
+        self::$duplicating = true;
+        $app->em->beginTransaction();
+        try {
+            $this->entityOpportunityModel = $this->generateOpportunity();
 
-        $this->generateEvaluationMethods();
-        $this->generatePhases();
-        $this->generateMetadata(0, 0);
-        $this->generateRegistrationFieldsAndFiles($this->entityOpportunity, $this->entityOpportunityModel);
+            $this->generateEvaluationMethods();
+            $this->generatePhases();
+            $this->generateMetadata(0, 0);
+            $this->generateRegistrationFieldsAndFiles($this->entityOpportunity, $this->entityOpportunityModel);
 
-        $this->entityOpportunityModel->save(true);
-       
-        $app->enableAccessControl();
+            // Remapeia referências a fases originais (appealPhase, etc.)
+            $this->modelRemapPhaseReferences();
+
+            $this->entityOpportunityModel->save(true);
+
+            $app->em->commit();
+        } catch (\Exception $e) {
+            $app->em->rollback();
+            self::$duplicating = false;
+            $app->enableAccessControl();
+            throw $e;
+        } finally {
+            self::$duplicating = false;
+            $app->enableAccessControl();
+        }
 
         $this->json($this->entityOpportunityModel); 
     }
@@ -120,6 +167,14 @@ trait EntityManagerModel {
 
         $this->entityOpportunityModel = clone $this->entityOpportunity;
 
+        // Remove referência stale ao EvaluationMethodConfiguration original
+        $this->entityOpportunityModel->evaluationMethodConfiguration = null;
+
+        // Limpa coleção de metadata herdada do clone
+        $refMeta = new \ReflectionProperty($this->entityOpportunityModel, '__metadata');
+        $refMeta->setAccessible(true);
+        $refMeta->setValue($this->entityOpportunityModel, new \Doctrine\Common\Collections\ArrayCollection());
+
         $this->entityOpportunityModel->name = $name;
         $this->entityOpportunityModel->status = -1;
         $this->entityOpportunityModel->shortDescription = $description;
@@ -149,6 +204,15 @@ trait EntityManagerModel {
         $name = $postData['name'];
         
         $this->entityOpportunityModel = clone $this->entityOpportunity;
+
+        // Remove referência stale ao EvaluationMethodConfiguration original
+        $this->entityOpportunityModel->evaluationMethodConfiguration = null;
+
+        // Limpa coleção de metadata herdada do clone
+        $refMeta = new \ReflectionProperty($this->entityOpportunityModel, '__metadata');
+        $refMeta->setAccessible(true);
+        $refMeta->setValue($this->entityOpportunityModel, new \Doctrine\Common\Collections\ArrayCollection());
+
         $this->entityOpportunityModel->name = $name;
         $this->entityOpportunityModel->status = Entity::STATUS_DRAFT;
         $this->entityOpportunityModel->owner = $app->user->profile;
@@ -178,108 +242,257 @@ trait EntityManagerModel {
 
         if (isset($postData['objectType']) && isset($postData['ownerEntity'])) {
             $ownerEntity = $app->repo($postData['objectType'])->find($postData['ownerEntity']);
-            $app->em->beginTransaction();            
+            // Não abre transação própria — já está dentro da transação externa
+            // de ALL_generatemodel() ou ALL_generateopportunity()
             $app->em->getConnection()->update('opportunity', [
                     'object_type' => $ownerEntity->getClassName(), 
                     'object_id' => $ownerEntity->id
                 ], ['id' => $id]);
-
-            $app->em->commit();
         }
     }
 
     private function generateEvaluationMethods() : void
     {
+        $this->modelGenerateEvalMethodsOf($this->entityOpportunity, $this->entityOpportunityModel);
+    }
+
+    /**
+     * Mapa de IDs de fases originais para IDs de fases geradas.
+     */
+    private $modelPhaseMap = [];
+
+    private function generatePhases() : void
+    {
+        $app = App::i();
+        $this->modelPhaseMap = [];
+
+        // Duplica recursivamente todas as fases (filhas, netas, etc.)
+        $this->modelGeneratePhasesOf($this->entityOpportunity, $this->entityOpportunityModel);
+
+        // Copia publishTimestamp da lastPhase e duplica sub-fases
+        $this->modelCopyLastPhaseData();
+    }
+
+    /**
+     * Duplica recursivamente as fases filhas de $originalParent,
+     * atribuindo-as como filhas de $newParent.
+     */
+    private function modelGeneratePhasesOf($originalParent, $newParent) : void
+    {
         $app = App::i();
 
-        // duplica o método de avaliação para a oportunidade primária
-        $evaluationMethodConfigurations = $app->repo('EvaluationMethodConfiguration')->findBy([
-            'opportunity' => $this->entityOpportunity
+        $phases = $app->repo('Opportunity')->findBy([
+            'parent' => $originalParent
         ]);
+
+        foreach ($phases as $phase) {
+            if ($phase->getMetadata('isLastPhase')) {
+                continue;
+            }
+
+            $newPhase = clone $phase;
+            $newPhase->setParent($newParent);
+            $newPhase->owner = $app->user->profile;
+
+            // Remove referência stale ao EvaluationMethodConfiguration original
+            $newPhase->evaluationMethodConfiguration = null;
+
+            // Desabilita o lock para evitar que o clone herde o lock do original
+            $newPhase->__lockEnable = false;
+
+            // Limpa coleção de metadata herdada do clone
+            $refMeta = new \ReflectionProperty($newPhase, '__metadata');
+            $refMeta->setAccessible(true);
+            $refMeta->setValue($newPhase, new \Doctrine\Common\Collections\ArrayCollection());
+
+            // Persiste o clone para obter um ID novo
+            $newPhase->save(true);
+
+            // Registra no mapa de fases
+            $this->modelPhaseMap[$phase->id] = $newPhase->id;
+
+            // duplica apenas os metadados realmente persistidos no banco
+            $persistedMeta = $app->repo($phase->getMetadataClassName())->findBy(['owner' => $phase]);
+            foreach ($persistedMeta as $metadataObject) {
+                $metadataValue = $metadataObject->value;
+                if (!is_null($metadataValue) && $metadataValue != '') {
+                    if (is_array($metadataValue)) {
+                        $metadataValue = json_encode($metadataValue);
+                    }
+                    $newPhase->setMetadata($metadataObject->key, $metadataValue);
+                }
+            }
+
+            $this->generateRegistrationFieldsAndFiles($phase, $newPhase);
+
+            $now = new \DateTime('now');
+            $newPhase->createTimestamp = $now;
+            $newPhase->subsite = $phase->subsite;
+
+            $newPhase->save(true);
+
+            $this->changeObjectType($newPhase->id);
+
+            // Duplica eval method configs
+            $this->modelGenerateEvalMethodsOf($phase, $newPhase);
+
+            // Duplica recursivamente sub-fases (ex: fases de recurso)
+            $this->modelGeneratePhasesOf($phase, $newPhase);
+        }
+    }
+
+    /**
+     * Duplica os EvaluationMethodConfigurations de $originalPhase para $newPhase.
+     */
+    private function modelGenerateEvalMethodsOf($originalPhase, $newPhase) : void
+    {
+        $app = App::i();
+
+        $evaluationMethodConfigurations = $app->repo('EvaluationMethodConfiguration')->findBy([
+            'opportunity' => $originalPhase
+        ]);
+
         foreach ($evaluationMethodConfigurations as $evaluationMethodConfiguration) {
             $newMethodConfiguration = clone $evaluationMethodConfiguration;
-            $newMethodConfiguration->setOpportunity($this->entityOpportunityModel);
+            $newMethodConfiguration->setOpportunity($newPhase);
+
+            $refMeta = new \ReflectionProperty($newMethodConfiguration, '__metadata');
+            $refMeta->setAccessible(true);
+            $refMeta->setValue($newMethodConfiguration, new \Doctrine\Common\Collections\ArrayCollection());
+
             $newMethodConfiguration->save(true);
 
-            // duplica os metadados das configurações do modelo de avaliação
-            foreach ($evaluationMethodConfiguration->getMetadata() as $metadataKey => $metadataValue) {
-                $newMethodConfiguration->setMetadata($metadataKey, $metadataValue);
+            // duplica apenas os metadados realmente persistidos no banco
+            $persistedMeta = $app->repo($evaluationMethodConfiguration->getMetadataClassName())->findBy(['owner' => $evaluationMethodConfiguration]);
+            foreach ($persistedMeta as $metadataObject) {
+                $metadataValue = $metadataObject->value;
+                if (is_array($metadataValue)) {
+                    $metadataValue = json_encode($metadataValue);
+                }
+                $newMethodConfiguration->setMetadata($metadataObject->key, $metadataValue);
                 $newMethodConfiguration->save(true);
             }
         }
     }
 
-    private function generatePhases() : void
+    /**
+     * Remapeia metadados que referenciam fases originais.
+     */
+    private function modelRemapPhaseReferences() : void
     {
+        if (empty($this->modelPhaseMap)) {
+            return;
+        }
+
         $app = App::i();
-        $postData = $this->postData;
+        $conn = $app->em->getConnection();
 
-        $phases = $app->repo('Opportunity')->findBy([
-            'parent' => $this->entityOpportunity
-        ]);
-        foreach ($phases as $phase) {
-            
-            if (!$phase->getMetadata('isLastPhase')) {
-                $newPhase = clone $phase;
-                $newPhase->setParent($this->entityOpportunityModel);
-                $newPhase->owner = $app->user->profile;
+        // Garante que todos os metadados pendentes estejam persistidos
+        $app->em->flush();
 
-                foreach ($phase->getMetadata() as $metadataKey => $metadataValue) {
-                    if (!is_null($metadataValue) && $metadataValue != '') {
-                        $newPhase->setMetadata($metadataKey, $metadataValue);
-                        $newPhase->save(true);
-                    }
-                }
+        $newIds = array_merge(
+            [$this->entityOpportunityModel->id],
+            array_values($this->modelPhaseMap)
+        );
 
-                $this->generateRegistrationFieldsAndFiles($phase, $newPhase);
+        $metaKeysToRemap = ['appealPhase'];
 
-                $now = new \DateTime('now');
-                $newPhase->createTimestamp = $now;
-                $newPhase->subsite = $phase->subsite;
+        foreach ($metaKeysToRemap as $metaKey) {
+            foreach ($newIds as $newId) {
+                $rows = $conn->fetchAll(
+                    "SELECT id, value FROM opportunity_meta WHERE object_id = ? AND key = ?",
+                    [$newId, $metaKey]
+                );
 
-                $newPhase->save(true);
-
-                $this->changeObjectType($newPhase->id);
-
-                $evaluationMethodConfigurations = $app->repo('EvaluationMethodConfiguration')->findBy([
-                    'opportunity' => $phase
-                ]);
-
-                foreach ($evaluationMethodConfigurations as $evaluationMethodConfiguration) {
-                    $newMethodConfiguration = clone $evaluationMethodConfiguration;
-                    $newMethodConfiguration->setOpportunity($newPhase);
-                    $newMethodConfiguration->save(true);
-
-                    // duplica os metadados das configurações do modelo de avaliação para a fase
-                    foreach ($evaluationMethodConfiguration->getMetadata() as $metadataKey => $metadataValue) {
-                        $newMethodConfiguration->setMetadata($metadataKey, $metadataValue);
-                        $newMethodConfiguration->save(true);
+                foreach ($rows as $row) {
+                    if (preg_match('/^(MapasCulturais\\\\Entities\\\\Opportunity):(\d+)$/', $row['value'], $matches)) {
+                        $oldRefId = (int) $matches[2];
+                        if (isset($this->modelPhaseMap[$oldRefId])) {
+                            $newRefId = $this->modelPhaseMap[$oldRefId];
+                            $newValue = $matches[1] . ':' . $newRefId;
+                            $conn->executeUpdate(
+                                "UPDATE opportunity_meta SET value = ? WHERE id = ?",
+                                [$newValue, $row['id']]
+                            );
+                        } else {
+                            // A fase referenciada não foi encontrada no mapa de duplicação.
+                            // Mantém o metadado como está e loga aviso para investigação.
+                            $app->log->warning("modelRemapPhaseReferences: opp $newId, metaKey '$metaKey' " .
+                                "referencia fase $oldRefId que não está no modelPhaseMap. Valor mantido.");
+                        }
                     }
                 }
             }
-            
+        }
+    }
 
+    /**
+     * Copia publishTimestamp e metadados da lastPhase, e duplica sub-fases.
+     */
+    private function modelCopyLastPhaseData() : void
+    {
+        $app = App::i();
+
+        $originalLastPhase = null;
+        $originalPhases = $app->repo('Opportunity')->findBy([
+            'parent' => $this->entityOpportunity
+        ]);
+        foreach ($originalPhases as $phase) {
             if ($phase->getMetadata('isLastPhase')) {
-                $publishDate = $phase->publishTimestamp;
-                $subsite = $phase->subsite;
+                $originalLastPhase = $phase;
+                break;
             }
         }
 
-        if (isset($publishDate)) {
-            $phases = $app->repo('Opportunity')->findBy([
-                'parent' => $this->entityOpportunityModel
-            ]);
-    
-            foreach ($phases as $phase) {
-                if ($phase->getMetadata('isLastPhase')) {
-                    $phase->setPublishTimestamp($publishDate);
-                    $phase->subsite = $subsite;
-                    $phase->save(true);
+        if (!$originalLastPhase) {
+            return;
+        }
 
-                    $this->changeObjectType($phase->id);
-                }
+        $newLastPhase = null;
+        $newPhases = $app->repo('Opportunity')->findBy([
+            'parent' => $this->entityOpportunityModel
+        ]);
+        foreach ($newPhases as $phase) {
+            if ($phase->getMetadata('isLastPhase')) {
+                $newLastPhase = $phase;
+                break;
             }
-        }   
+        }
+
+        if (!$newLastPhase) {
+            return;
+        }
+
+        if ($originalLastPhase->publishTimestamp) {
+            $newLastPhase->setPublishTimestamp($originalLastPhase->publishTimestamp);
+        }
+        $newLastPhase->subsite = $originalLastPhase->subsite;
+
+        // Copia metadados da lastPhase original
+        $persistedMeta = $app->repo($originalLastPhase->getMetadataClassName())->findBy(['owner' => $originalLastPhase]);
+        $hookDefinedKeys = ['isLastPhase', 'isOpportunityPhase', 'isDataCollection'];
+        foreach ($persistedMeta as $metadataObject) {
+            if (in_array($metadataObject->key, $hookDefinedKeys)) {
+                continue;
+            }
+            $metadataValue = $metadataObject->value;
+            if (!is_null($metadataValue) && $metadataValue != '') {
+                if (is_array($metadataValue)) {
+                    $metadataValue = json_encode($metadataValue);
+                }
+                $newLastPhase->setMetadata($metadataObject->key, $metadataValue);
+            }
+        }
+
+        $newLastPhase->save(true);
+
+        $this->changeObjectType($newLastPhase->id);
+
+        // Registra no mapa de fases
+        $this->modelPhaseMap[$originalLastPhase->id] = $newLastPhase->id;
+
+        // Duplica sub-fases da lastPhase
+        $this->modelGeneratePhasesOf($originalLastPhase, $newLastPhase);
     }
 
 
@@ -306,6 +519,10 @@ trait EntityManagerModel {
         $this->entityOpportunityModel->setMetadata('isModelPublic', $isModelPublic);
 
         $this->entityOpportunityModel->saveTerms();
+
+        // Persiste os metadados imediatamente para que modelRemapPhaseReferences()
+        // possa encontrá-los via SQL direto
+        $this->entityOpportunityModel->save(true);
     }
 
     private function generateRegistrationFieldsAndFiles($opportunityCurrent, $opportunityNew) : void
