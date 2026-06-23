@@ -40,7 +40,7 @@ app.component('registration-results', {
         },
 
         canShowAppeal() {
-            if (this.registration.opportunity.isReportingPhase) {
+            if (!this.registration?.opportunity || this.registration.opportunity.isReportingPhase) {
                 return false;
             }
             return this.registration.status > 1 && this.registration.status <= 10;
@@ -51,7 +51,7 @@ app.component('registration-results', {
         },
 
         modalTitle() {
-            return this.registration.opportunity.status === -20 ? 
+            return this.registration?.opportunity?.status === -20 ?
                 `${this.text('Detalhamento do recurso para ')} ${this.phase.name} - ${this.registration.number}` :
                 `${this.phase.name} - ${this.registration.number}`;
         },
