@@ -349,6 +349,8 @@ class Module extends \MapasCulturais\Module{
                     return;
                 }
 
+                try {
+
                 $regIds = array_map(function($row) { return $row['id']; }, $result);
 
                 $em = $app->em;
@@ -400,12 +402,18 @@ class Module extends \MapasCulturais\Module{
                             return implode(', ', array_filter($parts));
                         }
                     }
+                    if (is_object($val)) {
+                        $encoded = @json_encode($val, JSON_UNESCAPED_UNICODE);
+                        if ($encoded !== false) return $encoded;
+                        return '';
+                    }
                     return (string) $val;
                 };
 
                 $formatBool = function($val) {
                     if ($val === null || $val === '') return 'Não';
                     if (is_bool($val)) return $val ? 'Sim' : 'Não';
+                    if (is_object($val)) return 'Não';
                     $lower = strtolower((string) $val);
                     return $lower === 'true' ? 'Sim' : 'Não';
                 };
@@ -576,6 +584,10 @@ class Module extends \MapasCulturais\Module{
                     $row['workplan_deliveryDocumentationTypes'] = implode(' | ', array_filter($deliveryDocumentationTypes)) ?: '';
                 }
                 unset($row);
+
+                } catch (\Throwable $e) {
+                    $app->log->error("SpreadsheetJob getBatch:after - workplan fields failed: {$e->getMessage()}");
+                }
             });
         });
     }
