@@ -402,6 +402,17 @@ trait EntityMetadata{
     }
 
     /**
+     * Limpa o cache de metadata criado em memória.
+     *
+     * Útil após clonar uma entidade para evitar que valores do original
+     * sejam retornados por getMetadata() na instância clonada.
+     */
+    public function resetCreatedMetadataCache(): void {
+        $this->__createdMetadata = [];
+        $this->__changedMetadata = [];
+    }
+
+    /**
      * Return Instagram URL if available
      *
      * @return string

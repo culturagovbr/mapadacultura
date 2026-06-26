@@ -119,6 +119,7 @@ trait EntityManagerModel {
         $description = $postData['description'];
 
         $this->entityOpportunityModel = clone $this->entityOpportunity;
+        $this->entityOpportunityModel->resetCreatedMetadataCache();
 
         $this->entityOpportunityModel->name = $name;
         $this->entityOpportunityModel->status = -1;
@@ -149,6 +150,8 @@ trait EntityManagerModel {
         $name = $postData['name'];
         
         $this->entityOpportunityModel = clone $this->entityOpportunity;
+        $this->entityOpportunityModel->resetCreatedMetadataCache();
+
         $this->entityOpportunityModel->name = $name;
         $this->entityOpportunityModel->status = Entity::STATUS_DRAFT;
         $this->entityOpportunityModel->owner = $app->user->profile;
