@@ -57,7 +57,7 @@ app.component('registration-results', {
         },
 
         evaluationData() {
-            return $MAPAS.config.continuousEvaluationDetail[this.registration.id];
+            return $MAPAS.config.continuousEvaluationDetail?.[this.registration.id];
         },
 
         opportunity () {
