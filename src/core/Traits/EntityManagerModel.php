@@ -3,6 +3,7 @@ namespace MapasCulturais\Traits;
 
 use MapasCulturais\App;
 use MapasCulturais\Entity;
+use MapasCulturais\i;
 
 trait EntityManagerModel {
 
@@ -32,24 +33,33 @@ trait EntityManagerModel {
     }
 
     function ALL_generateopportunity(){
+        set_time_limit(0);
         $app = App::i();
 
         $this->requireAuthentication();
         $this->entityOpportunity = $this->requestedEntity;
 
+        $postData = $this->postData;
+        if (empty($postData['name']) || !is_string($postData['name'])) {
+            $this->errorJson(['name' => [i::__('O campo "nome" é obrigatório.')]], 400);
+            return;
+        }
+
         $app->disableAccessControl();
-        $this->entityOpportunityModel = $this->generateOpportunity();
+        try {
+            $this->entityOpportunityModel = $this->generateOpportunity();
 
-        $this->generateEvaluationMethods();
-        $this->generatePhases();
-        $this->generateMetadata(0, 0);
-        $this->generateRegistrationFieldsAndFiles($this->entityOpportunity, $this->entityOpportunityModel);
+            $this->generateEvaluationMethods();
+            $this->generatePhases();
+            $this->generateMetadata(0, 0);
+            $this->generateRegistrationFieldsAndFiles($this->entityOpportunity, $this->entityOpportunityModel);
 
-        $this->entityOpportunityModel->save(true);
-       
-        $app->enableAccessControl();
+            $this->entityOpportunityModel->save(true);
+        } finally {
+            $app->enableAccessControl();
+        }
 
-        $this->json($this->entityOpportunityModel); 
+        $this->json($this->entityOpportunityModel);
     }
 
     function GET_findOpportunitiesModels()
@@ -119,6 +129,7 @@ trait EntityManagerModel {
         $description = $postData['description'];
 
         $this->entityOpportunityModel = clone $this->entityOpportunity;
+        $this->entityOpportunityModel->resetCreatedMetadataCache();
 
         $this->entityOpportunityModel->name = $name;
         $this->entityOpportunityModel->status = -1;
@@ -149,6 +160,8 @@ trait EntityManagerModel {
         $name = $postData['name'];
         
         $this->entityOpportunityModel = clone $this->entityOpportunity;
+        $this->entityOpportunityModel->resetCreatedMetadataCache();
+
         $this->entityOpportunityModel->name = $name;
         $this->entityOpportunityModel->status = Entity::STATUS_DRAFT;
         $this->entityOpportunityModel->owner = $app->user->profile;
@@ -158,14 +171,17 @@ trait EntityManagerModel {
 
         $app->em->persist($this->entityOpportunityModel);
         $app->em->flush();
+        // O clone herda referências do original (ex: evaluationMethodConfiguration apontando para o modelo).
+        // O refresh recarrega do banco, garantindo que o objeto reflita apenas o que existe para o novo id.
+        $app->em->refresh($this->entityOpportunityModel);
 
         // necessário adicionar as categorias, proponetes e ranges após salvar devido a trigger public.fn_propagate_opportunity_insert
         $this->entityOpportunityModel->registrationCategories = $this->entityOpportunity->registrationCategories;
         $this->entityOpportunityModel->registrationProponentTypes = $this->entityOpportunity->registrationProponentTypes;
         $this->entityOpportunityModel->registrationRanges = $this->entityOpportunity->registrationRanges;
-        
+
         $this->changeObjectType($this->entityOpportunityModel->id);
-        
+
         $this->entityOpportunityModel->save(true);
 
         return $this->entityOpportunityModel;
@@ -178,13 +194,22 @@ trait EntityManagerModel {
 
         if (isset($postData['objectType']) && isset($postData['ownerEntity'])) {
             $ownerEntity = $app->repo($postData['objectType'])->find($postData['ownerEntity']);
-            $app->em->beginTransaction();            
-            $app->em->getConnection()->update('opportunity', [
-                    'object_type' => $ownerEntity->getClassName(), 
-                    'object_id' => $ownerEntity->id
-                ], ['id' => $id]);
-
-            $app->em->commit();
+            if ($ownerEntity === null) {
+                throw new \InvalidArgumentException(
+                    "Entidade do tipo '{$postData['objectType']}' com id '{$postData['ownerEntity']}' não encontrada."
+                );
+            }
+            $app->em->beginTransaction();
+            try {
+                $app->em->getConnection()->update('opportunity', [
+                        'object_type' => $ownerEntity->getClassName(),
+                        'object_id'   => $ownerEntity->id
+                    ], ['id' => $id]);
+                $app->em->commit();
+            } catch (\Throwable $e) {
+                $app->em->rollback();
+                throw $e;
+            }
         }
     }
 
@@ -200,6 +225,8 @@ trait EntityManagerModel {
             $newMethodConfiguration = clone $evaluationMethodConfiguration;
             $newMethodConfiguration->setOpportunity($this->entityOpportunityModel);
             $newMethodConfiguration->save(true);
+            // Refresh para que o hook veja a opportunity como ocupada na próxima invocação.
+            $app->em->refresh($newMethodConfiguration->opportunity);
 
             // duplica os metadados das configurações do modelo de avaliação
             foreach ($evaluationMethodConfiguration->getMetadata() as $metadataKey => $metadataValue) {
@@ -218,9 +245,11 @@ trait EntityManagerModel {
             'parent' => $this->entityOpportunity
         ]);
         foreach ($phases as $phase) {
-            
+
             if (!$phase->getMetadata('isLastPhase')) {
                 $newPhase = clone $phase;
+                // Clone herda o id original; isLocked() encontraria o lock do dono do modelo.
+                $newPhase->__lockEnable = false;
                 $newPhase->setParent($this->entityOpportunityModel);
                 $newPhase->owner = $app->user->profile;
 
@@ -238,6 +267,9 @@ trait EntityManagerModel {
                 $newPhase->subsite = $phase->subsite;
 
                 $newPhase->save(true);
+                // O clone da fase herda referências do original (ex: evaluationMethodConfiguration).
+                // O refresh garante que o objeto reflita apenas o que existe para o novo id no banco.
+                $app->em->refresh($newPhase);
 
                 $this->changeObjectType($newPhase->id);
 
@@ -289,8 +321,14 @@ trait EntityManagerModel {
         $em = $app->em;
         $conn = $em->getConnection();
 
+        // Permite que plugins excluam chaves de metadados da cópia. Sem este hook,
+        // flags de estado do modelo (ex: de integração com sistemas externos) seriam
+        // copiados para a nova oportunidade.
+        $excludedKeys = [];
+        $app->applyHookBoundTo($this, 'EntityManagerModel.generateMetadata.excludedKeys', [&$excludedKeys]);
+
         $sql = "
-            SELECT 
+            SELECT
                 om.*
             FROM
                 opportunity_meta om
@@ -299,6 +337,9 @@ trait EntityManagerModel {
         $stmt = $conn->query($sql);
 
         while (($row = $stmt->fetchAssociative()) !== false) {
+            if (!empty($excludedKeys) && in_array($row['key'], $excludedKeys, true)) {
+                continue;
+            }
             $this->entityOpportunityModel->setMetadata($row['key'], $row['value']);
         }
 

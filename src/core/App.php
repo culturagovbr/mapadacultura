@@ -48,6 +48,9 @@ use Monolog\Level;
 use Monolog\Logger;
 
 use Psr\Http\Message\ResponseInterface as ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Slim\Factory\ServerRequestCreatorFactory;
+use Slim\ResponseEmitter;
 use Psr\Log\InvalidArgumentException as LogInvalidArgumentException;
 use Respect\Validation\Factory as RespectorValidationFactory;
 use Symfony\Component\Mailer\Exception\InvalidArgumentException as ExceptionInvalidArgumentException;
@@ -469,12 +472,35 @@ class App {
      * @throws TransactionRequiredException 
      * @throws WorkflowRequest 
      */
-    public function run() {
+    public function run(?ServerRequestInterface $request = null, bool $emit = true) {
         $this->applyHookBoundTo($this, 'mapasculturais.run:before');
-        $this->slim->run();
+
+        if (!$request) {
+            $serverRequestCreator = ServerRequestCreatorFactory::create();
+            $request = $serverRequestCreator->createServerRequestFromGlobals();
+        }
+
+        $response = $this->slim->handle($request);
+
+        if ($emit) {
+            $responseEmitter = new ResponseEmitter();
+            $responseEmitter->emit($response);
+        }
+
+        $this->response = $response;
+
         $this->persistPCachePendingQueue();
         $this->applyHookBoundTo($this, 'mapasculturais.run:after');
         $this->applyHookBoundTo($this, 'slim.after');
+
+        return $response;
+    }
+
+    function reset(): void {
+        $this->_permissionCachePendingQueue = [];
+        $this->cache->deleteAll();
+        $this->rcache->deleteAll();
+        $this->mscache->deleteAll();
     }
 
     /**
@@ -723,6 +749,7 @@ class App {
         
         // obtaining the entity manager
         $this->em = new EntityManager($connection, $doctrine_config);
+        $this->em->getConnection()->setNestTransactionsWithSavepoints(true);
 
         DoctrineMappings\Types\Frequency::register();
         DoctrineMappings\Types\Point::register();

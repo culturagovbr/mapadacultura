@@ -176,6 +176,9 @@ abstract class Controller{
      */
     public function setRequestData(array $args){
         $this->_urlData = $args;
+        if (property_exists($this, '_requestedEntity')) {
+            $this->_requestedEntity = false;
+        }
         $request = App::i()->request;
 
         $this->data = $args + $request->params();

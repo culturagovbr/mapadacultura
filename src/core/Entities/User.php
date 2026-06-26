@@ -226,6 +226,7 @@ class User extends \MapasCulturais\Entity implements \MapasCulturais\UserInterfa
             $role->name = $role_name;
             $role->subsiteId = $role_definition->subsiteContext ? $subsite_id : null;
             $role->save(true);
+            $this->roles->add($role);
             return true;
         }
 
