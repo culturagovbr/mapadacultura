@@ -258,16 +258,24 @@ trait EntityMetadata{
                     $metadata_object = new $metadata_entity_class;
                     $metadata_object->key = $meta_key;
                     $metadata_object->owner = $this;
-                    
+
                     if (isset($default_value)) {
                         if($default_value instanceof \Closure) {
                             $callable = \Closure::bind($default_value, $this);
-                            $metadata_object->value = $callable($def); 
+                            $resolved = $callable($def);
                         } else {
-                            $metadata_object->value = $default_value;
+                            $resolved = $default_value;
                         }
+                        // Valores vindos do banco são sempre strings. Valores default
+                        // não-escalares (ex: arrays para type='array') precisam ser
+                        // serializados para manter a consistência e evitar que sejam
+                        // passados como array a PDO ao persistir via setMetadata().
+                        if (!is_string($resolved) && !is_null($resolved) && is_callable($def->serialize)) {
+                            $resolved = ($def->serialize)($resolved, $this, $def);
+                        }
+                        $metadata_object->value = $resolved;
                     }
-        
+
                     $this->__createdMetadata[$meta_key] = $metadata_object;
                 }
             }
