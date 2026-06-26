@@ -171,14 +171,17 @@ trait EntityManagerModel {
 
         $app->em->persist($this->entityOpportunityModel);
         $app->em->flush();
+        // O clone herda referências do original (ex: evaluationMethodConfiguration apontando para o modelo).
+        // O refresh recarrega do banco, garantindo que o objeto reflita apenas o que existe para o novo id.
+        $app->em->refresh($this->entityOpportunityModel);
 
         // necessário adicionar as categorias, proponetes e ranges após salvar devido a trigger public.fn_propagate_opportunity_insert
         $this->entityOpportunityModel->registrationCategories = $this->entityOpportunity->registrationCategories;
         $this->entityOpportunityModel->registrationProponentTypes = $this->entityOpportunity->registrationProponentTypes;
         $this->entityOpportunityModel->registrationRanges = $this->entityOpportunity->registrationRanges;
-        
+
         $this->changeObjectType($this->entityOpportunityModel->id);
-        
+
         $this->entityOpportunityModel->save(true);
 
         return $this->entityOpportunityModel;
@@ -213,6 +216,8 @@ trait EntityManagerModel {
             $newMethodConfiguration = clone $evaluationMethodConfiguration;
             $newMethodConfiguration->setOpportunity($this->entityOpportunityModel);
             $newMethodConfiguration->save(true);
+            // Refresh para que o hook veja a opportunity como ocupada na próxima invocação.
+            $app->em->refresh($newMethodConfiguration->opportunity);
 
             // duplica os metadados das configurações do modelo de avaliação
             foreach ($evaluationMethodConfiguration->getMetadata() as $metadataKey => $metadataValue) {
@@ -251,6 +256,9 @@ trait EntityManagerModel {
                 $newPhase->subsite = $phase->subsite;
 
                 $newPhase->save(true);
+                // O clone da fase herda referências do original (ex: evaluationMethodConfiguration).
+                // O refresh garante que o objeto reflita apenas o que existe para o novo id no banco.
+                $app->em->refresh($newPhase);
 
                 $this->changeObjectType($newPhase->id);
 
