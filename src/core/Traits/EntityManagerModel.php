@@ -3,6 +3,7 @@ namespace MapasCulturais\Traits;
 
 use MapasCulturais\App;
 use MapasCulturais\Entity;
+use MapasCulturais\i;
 
 trait EntityManagerModel {
 
@@ -32,24 +33,33 @@ trait EntityManagerModel {
     }
 
     function ALL_generateopportunity(){
+        set_time_limit(0);
         $app = App::i();
 
         $this->requireAuthentication();
         $this->entityOpportunity = $this->requestedEntity;
 
+        $postData = $this->postData;
+        if (empty($postData['name']) || !is_string($postData['name'])) {
+            $this->errorJson(['name' => [i::__('O campo "nome" é obrigatório.')]], 400);
+            return;
+        }
+
         $app->disableAccessControl();
-        $this->entityOpportunityModel = $this->generateOpportunity();
+        try {
+            $this->entityOpportunityModel = $this->generateOpportunity();
 
-        $this->generateEvaluationMethods();
-        $this->generatePhases();
-        $this->generateMetadata(0, 0);
-        $this->generateRegistrationFieldsAndFiles($this->entityOpportunity, $this->entityOpportunityModel);
+            $this->generateEvaluationMethods();
+            $this->generatePhases();
+            $this->generateMetadata(0, 0);
+            $this->generateRegistrationFieldsAndFiles($this->entityOpportunity, $this->entityOpportunityModel);
 
-        $this->entityOpportunityModel->save(true);
-       
-        $app->enableAccessControl();
+            $this->entityOpportunityModel->save(true);
+        } finally {
+            $app->enableAccessControl();
+        }
 
-        $this->json($this->entityOpportunityModel); 
+        $this->json($this->entityOpportunityModel);
     }
 
     function GET_findOpportunitiesModels()
