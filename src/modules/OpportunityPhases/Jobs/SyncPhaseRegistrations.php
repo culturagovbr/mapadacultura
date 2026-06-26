@@ -22,11 +22,15 @@ class SyncPhaseRegistrations extends JobType
 
         $registrations = $job->registrations ?: [];
 
-        /**
-         * sincroniza as inscrições da fase com a fase anterior
-         */
+        // syncRegistrations verifica @control sobre a fase, mas este job é uma operação
+        // de sistema — o resultado não deve depender de quem disparou o evento.
         if ($opportunity) {
-            $opportunity->syncRegistrations($registrations);
+            $app->disableAccessControl();
+            try {
+                $opportunity->syncRegistrations($registrations);
+            } finally {
+                $app->enableAccessControl();
+            }
         }
 
         return true;
