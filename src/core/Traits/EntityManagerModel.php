@@ -236,9 +236,11 @@ trait EntityManagerModel {
             'parent' => $this->entityOpportunity
         ]);
         foreach ($phases as $phase) {
-            
+
             if (!$phase->getMetadata('isLastPhase')) {
                 $newPhase = clone $phase;
+                // Clone herda o id original; isLocked() encontraria o lock do dono do modelo.
+                $newPhase->__lockEnable = false;
                 $newPhase->setParent($this->entityOpportunityModel);
                 $newPhase->owner = $app->user->profile;
 
