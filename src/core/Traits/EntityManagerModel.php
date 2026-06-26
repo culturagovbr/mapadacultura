@@ -194,13 +194,22 @@ trait EntityManagerModel {
 
         if (isset($postData['objectType']) && isset($postData['ownerEntity'])) {
             $ownerEntity = $app->repo($postData['objectType'])->find($postData['ownerEntity']);
-            $app->em->beginTransaction();            
-            $app->em->getConnection()->update('opportunity', [
-                    'object_type' => $ownerEntity->getClassName(), 
-                    'object_id' => $ownerEntity->id
-                ], ['id' => $id]);
-
-            $app->em->commit();
+            if ($ownerEntity === null) {
+                throw new \InvalidArgumentException(
+                    "Entidade do tipo '{$postData['objectType']}' com id '{$postData['ownerEntity']}' não encontrada."
+                );
+            }
+            $app->em->beginTransaction();
+            try {
+                $app->em->getConnection()->update('opportunity', [
+                        'object_type' => $ownerEntity->getClassName(),
+                        'object_id'   => $ownerEntity->id
+                    ], ['id' => $id]);
+                $app->em->commit();
+            } catch (\Throwable $e) {
+                $app->em->rollback();
+                throw $e;
+            }
         }
     }
 
