@@ -5,7 +5,7 @@ namespace MapasCulturais;
 use Psr\Http\Message\ServerRequestInterface as RequestInterface;
 
 class Request {
-    public \Slim\Psr7\Request $psr7request;
+    public \Psr\Http\Message\ServerRequestInterface $psr7request;
     public array $headers;
 
     public $controllerId;
