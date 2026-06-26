@@ -238,7 +238,7 @@ class Hooks {
 
         foreach ($this->_excludeHooks as $hook => $callables) {
             if (preg_match($hook, $name)) {
-                $exclude_list = array_merge($callables);
+                $exclude_list = array_merge($exclude_list, $callables);
             }
         }
 
