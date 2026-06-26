@@ -321,8 +321,14 @@ trait EntityManagerModel {
         $em = $app->em;
         $conn = $em->getConnection();
 
+        // Permite que plugins excluam chaves de metadados da cópia. Sem este hook,
+        // flags de estado do modelo (ex: de integração com sistemas externos) seriam
+        // copiados para a nova oportunidade.
+        $excludedKeys = [];
+        $app->applyHookBoundTo($this, 'EntityManagerModel.generateMetadata.excludedKeys', [&$excludedKeys]);
+
         $sql = "
-            SELECT 
+            SELECT
                 om.*
             FROM
                 opportunity_meta om
@@ -331,6 +337,9 @@ trait EntityManagerModel {
         $stmt = $conn->query($sql);
 
         while (($row = $stmt->fetchAssociative()) !== false) {
+            if (!empty($excludedKeys) && in_array($row['key'], $excludedKeys, true)) {
+                continue;
+            }
             $this->entityOpportunityModel->setMetadata($row['key'], $row['value']);
         }
 
