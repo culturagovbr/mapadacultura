@@ -1582,6 +1582,12 @@ class Module extends \MapasCulturais\Module{
          * é criada para "abrigar" a fase de avaliaçao.
          */
         $app->hook('entity(EvaluationMethodConfiguration).insert:before', function () {
+            // Se o EMC já está sendo associado a uma fase (opportunity com parent),
+            // não redirecionar — o chamador (ex: generatePhases) já escolheu o alvo correto.
+            if ($this->opportunity->parent !== null) {
+                return;
+            }
+
             $phase = null;
             $phases = $this->opportunity->allPhases;
 

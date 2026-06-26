@@ -48,6 +48,8 @@ trait EntityOpportunityDuplicator {
         $this->entityNewOpportunity->name = "$name  - [Cópia][$now]";
         $this->entityNewOpportunity->status = Entity::STATUS_DRAFT;
         $app->em->persist($this->entityNewOpportunity);
+        // PHP clone compartilha __createdMetadata com o original; sem reset, setMetadata() na cópia não detecta mudança.
+        $this->entityNewOpportunity->resetCreatedMetadataCache();
         $app->em->flush();
 
         $this->entityNewOpportunity->registrationCategories = $this->entityOpportunity->registrationCategories;

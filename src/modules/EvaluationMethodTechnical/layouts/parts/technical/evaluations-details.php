@@ -17,11 +17,11 @@
 
         <div>
             <p><label><?= i::__('Pontuação total: ') ?></label> <strong>{{registration.score}}</strong></p>
-            <p><label><?= i::__('Pontuação máxima: ') ?></label> <strong>{{registration.consolidatedDetails.maxScore}}</strong></p>
+            <p><label><?= i::__('Pontuação máxima: ') ?></label> <strong>{{registration.consolidatedDetails?.maxScore}}</strong></p>
         </div>
     </div>
 
-    <div v-if="registration.consolidatedDetails.appliedPointReward" 
+    <div v-if="registration.consolidatedDetails?.appliedPointReward" 
          v-for="policy in [registration.consolidatedDetails.appliedPointReward]" class="registration-results__card-content">                    
         <div class="registration-results__opinion registration-results__opinion--document">
             <h5 class="registration-results__opinion-title bold">
@@ -48,7 +48,7 @@
     </div>
 </div>
 
-<div v-if="registration.evaluationsDetails.length" v-for="(evaluation, index) in registration.evaluationsDetails" class="registration-results__card">
+<div v-if="registration.evaluationsDetails?.length" v-for="(evaluation, index) in registration.evaluationsDetails" class="registration-results__card">
     <div class="registration-results__card-header">
         <div class="registration-results__card-title">
             <h4 v-if="evaluation.valuer" class="registration-results__opinion-title bold">
